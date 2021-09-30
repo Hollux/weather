@@ -30,28 +30,40 @@ class ApiWeatherController extends AbstractController
      */
     public function api_weather_villes(Request $request)
     {
-        
+        $date = date("jnY");
         $data = json_decode($request->getContent(), true)["data"];
 
         $weatherArray = [];
-        foreach ($data as $key => $value) {
+        foreach ($data as $key => $city) {
 
-            $url = "https://api-adresse.data.gouv.fr/search/?q=" . $value;
-            $cityArray = $this->weatherTools->GetClientResponse($this->client, $url);
+            $url = "https://api-adresse.data.gouv.fr/search/?q=" . $city;
+            $cityArray = $this->weatherTools->getClientResponse($this->client, $url);
             if(!$cityArray){
                 return $this->json([
-                    "error" => "Ville ". $value . " introuvable",
+                    "error" => "Ville ". $city . " introuvable",
                 ]);
             }
 
             if(isset($cityArray["features"]) && isset($cityArray["features"][0]['geometry']["coordinates"])){
+                // verif si on a bien des infos des villes.
+
+                //dump($cityArray["features"][0]["properties"]["label"]);exit;
+                //TODO : findByDateVille
+                // if()
 
                 $weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=".
                     $cityArray["features"][0]['geometry']["coordinates"][1]."&lon=".
                     $cityArray["features"][0]['geometry']["coordinates"][0]."&exclude=minutely,hourly&appid=".
                     $this->getParameter('weatherApiKey')."&lang=fr&units=metric";
 
-                $weatherArray[] = $this->weatherTools->GetClientResponse($this->client, $weatherUrl);
+                $weatherArray = $this->weatherTools->getClientResponse($this->client, $weatherUrl);
+
+                //TODO tester le retour de l'api
+
+                $resp = $this->weatherTools->getTHN($weatherArray["daily"]);
+
+                dump($resp);exit;
+                // Save les valeurs
 
             } else {
                 return $this->json([
@@ -60,7 +72,7 @@ class ApiWeatherController extends AbstractController
             } 
         }
 
-        dump($weatherArray);exit;
+        dump($weatherArray["daily"]);exit;
 
         return $this->json([
             "success" => "success",
