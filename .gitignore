@@ -53,3 +53,6 @@
 
 # infos vscode
 .vscode
+
+# infos secretes
+.env
