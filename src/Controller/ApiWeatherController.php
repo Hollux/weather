@@ -33,6 +33,8 @@ class ApiWeatherController extends AbstractController
         $date = date("jnY");
         $data = json_decode($request->getContent(), true)["data"];
 
+        dump($date);exit;
+
         $weatherArray = [];
         foreach ($data as $key => $city) {
 
