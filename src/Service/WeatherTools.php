@@ -4,20 +4,20 @@ namespace App\Service;
 class WeatherTools
 {
     public function getClientResponse($client, $url){
+
         $response = $client->request(
                 'GET',
                 $url
             );
 
-            $statusCode = $response->getStatusCode();
-            if($statusCode = 200){
-                $contentType = $response->getHeaders()['content-type'][0];
-                // $contentType = 'application/json'
-                $content = $response->getContent();
-                $content = $response->toArray();
+        if($response && $response->getStatusCode() == 200){
+            $contentType = $response->getHeaders()['content-type'][0];
+            // $contentType = 'application/json'
+            $content = $response->getContent();
+            $content = $response->toArray();
 
-                return $content;
-            }
+            return $content;
+        }
             
 
         return false;

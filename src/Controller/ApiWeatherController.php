@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use App\Service\WeatherTools;
+use App\Entity\WeatherVille; 
 
 class ApiWeatherController extends AbstractController
 {
@@ -33,9 +34,7 @@ class ApiWeatherController extends AbstractController
         $date = date("jnY");
         $data = json_decode($request->getContent(), true)["data"];
 
-        dump($date);exit;
-
-        $weatherArray = [];
+        $resp = [];
         foreach ($data as $key => $city) {
 
             $url = "https://api-adresse.data.gouv.fr/search/?q=" . $city;
@@ -49,23 +48,37 @@ class ApiWeatherController extends AbstractController
             if(isset($cityArray["features"]) && isset($cityArray["features"][0]['geometry']["coordinates"])){
                 // verif si on a bien des infos des villes.
 
-                //dump($cityArray["features"][0]["properties"]["label"]);exit;
-                //TODO : findByDateVille
-                // if()
+                // On cherche les infos en bdd si possible pour éviter de consommer l'api.
+                // Les infos sont journalières pour avoir des données météo fraiches, mais pas trop non plus
+                // (un équilibre entre consommation d'api et informations à jour)
+                $weatherVille = $this->getDoctrine()
+                    ->getRepository(WeatherVille::class)
+                    ->findOneBy(["date" => $date, "city" => $cityArray["features"][0]["properties"]["label"]]);
 
-                $weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=".
+                if($weatherVille) {
+                    $resp[] = $weatherVille->getWeather();
+                } else {
+
+                    $weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=".
                     $cityArray["features"][0]['geometry']["coordinates"][1]."&lon=".
                     $cityArray["features"][0]['geometry']["coordinates"][0]."&exclude=minutely,hourly&appid=".
                     $this->getParameter('weatherApiKey')."&lang=fr&units=metric";
 
-                $weatherArray = $this->weatherTools->getClientResponse($this->client, $weatherUrl);
+                    $weatherArray = $this->weatherTools->getClientResponse($this->client, $weatherUrl);
 
-                //TODO tester le retour de l'api
+                    //TODO tester le retour de l'api
 
-                $resp = $this->weatherTools->getTHN($weatherArray["daily"]);
+                    $resp[] = $this->weatherTools->getTHN($weatherArray["daily"]);
 
-                dump($resp);exit;
-                // Save les valeurs
+                    //save des valeurs.
+                    $weatherVille = new WeatherVille;
+                    $weatherVille->setCity($cityArray["features"][0]["properties"]["label"]);
+                    $weatherVille->setDate($date);
+                    $weatherVille->setWeather($resp[$key]);
+                    $entityManager = $this->getDoctrine()->getManager();
+                    $entityManager->persist($weatherVille);
+                    $entityManager->flush();
+                }
 
             } else {
                 return $this->json([
@@ -74,7 +87,7 @@ class ApiWeatherController extends AbstractController
             } 
         }
 
-        dump($weatherArray["daily"]);exit;
+        dump($resp);exit;
 
         return $this->json([
             "success" => "success",
