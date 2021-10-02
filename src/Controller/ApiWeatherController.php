@@ -41,10 +41,10 @@ class ApiWeatherController extends AbstractController
                 ]);
         }
 
-        dump($resp);exit;
+        $villeTop = $this->weatherTools->compareWeather($resp, $mode);
 
         return $this->json([
-            "success" => "success",
+            "success" => $data[$villeTop],
         ]);
     } 
 
