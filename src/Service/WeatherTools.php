@@ -59,7 +59,7 @@ class WeatherTools
                         $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
 
                         if(!isset($weatherArray["daily"])){
-                            return ["error" => "Ville ". $value . " introuvable"];
+                            return ["error" => "Ville ". $city . " introuvable"];
                         }
                         $resp[] = $this->getTHN($weatherArray["daily"]);
 
@@ -73,7 +73,7 @@ class WeatherTools
                     }
 
                 } else {
-                    return ["error" => "Ville ". $value . " introuvable"];
+                    return ["error" => "Ville ". $city . " introuvable"];
                 } 
 
             } else {
@@ -101,7 +101,7 @@ class WeatherTools
                         $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
 
                         if(!isset($weatherArray["daily"])){
-                            return ["error" => "Ville ". $value . " introuvable"];
+                            return ["error" => "Ville ". $city . " introuvable"];
                         }
 
                         $nextWeakWeather = array_slice($weatherArray["daily"], $numberDayCutInArray);
