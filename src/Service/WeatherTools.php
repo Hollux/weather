@@ -147,7 +147,7 @@ class WeatherTools
             } 
 
         } else if ($mode = "degressif"){
-
+            //ici plus la valeure s'éloigne de la valeur escompté, plus la note baisse.
         }
     }
 
