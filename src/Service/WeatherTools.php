@@ -113,42 +113,93 @@ class WeatherTools
         return ["T" => $T, "H" => $H, "N" => $N];
     }
 
+    public function calcDegressif($val, $valRef, $maxPoint, $echelle, $echellePoint){
+        // calcul simple pour récupérer les points en fonction d'une echelle.
+        // on calcul le nombre point qui nous séparer de l'échelle.
+
+
+        $diff = 0;
+        if($val > $valRef){
+            while ($val <= $valRef) {
+                $val = $val-$echelle;
+                $diff++;
+            }
+        }
+
+        if($val < $valRef){
+            while ($val >= $valRef) {
+                $val = $val+$echelle;
+                $diff++;
+            }
+        }
+
+        if($val == $valRef){
+            return $maxPoint;
+        }
+
+        $point = $maxPoint - $diff * $echellePoint;
+        if($point < 0){
+            $point = 0;
+        }
+
+        return $point;
+    }
+
     public function compareWeather($weatherArray, $mode){
 
-        $pointsVille0 = 0;
-        $pointsVille1 = 0;
+        $pointsVille = [0, 0];
         if($mode = "strict"){
             //TODO: passer surement en mode strict pour vérifier les valeurs negatives de T°
             //T°
-            if($weatherArray[0]["T"] - 27 > $weatherArray[1]["T"] - 27) {
-                $pointsVille0 = $pointsVille0 +20;
+            if(abs($weatherArray[0]["T"] - 27) > abs($weatherArray[1]["T"] - 27)) {
+                $pointsVille[0] = $pointsVille[0] +20;
             } else {
-                $pointsVille1 = $pointsVille1 +20;
+                $pointsVille[1] = $pointsVille[1] +20;
             } 
 
             //H
             if($weatherArray[0]["H"] - 60 > $weatherArray[1]["H"] - 60) {
-                $pointsVille0 = $pointsVille0 +15;
+                $pointsVille[0] = $pointsVille[0] +15;
             } else {
-                $pointsVille1 = $pointsVille1 +15;
+                $pointsVille[1] = $pointsVille[1] +15;
             } 
 
             //N
             if($weatherArray[0]["N"] - 15 > $weatherArray[1]["N"] - 15) {
-                $pointsVille0 = $pointsVille0 +10;
+                $pointsVille[0] = $pointsVille[0] +10;
             } else {
-                $pointsVille1 = $pointsVille1 +10;
+                $pointsVille[1] = $pointsVille[1] +10;
             } 
 
-            if($pointsVille0 > $pointsVille1){
-                return 0;
-            } else {
-                return 1;
-            } 
+            
 
         } else if ($mode = "degressif"){
             //ici plus la valeure s'éloigne de la valeur escompté, plus la note baisse.
+
+
+            //note perso : France t° moyenne 15, mini -37 maxi 44
+            // humidité moyenne en france : 60 à 80%
+            // taux de nuage pas trouvé
+
+            foreach ($weatherArray as $key => $weatherVille) {
+                //echelle t° 1° pour 2points
+                $pointsVille[$key] += $this->calcDegressif(PHP_ROUND_HALF_EVEN($weatherVille["T"]), 27, 20, 1, 2);
+
+                //echelle humidité 1 pour 1
+
+                $pointsVille[$key] += $this->calcDegressif(PHP_ROUND_HALF_EVEN($weatherVille["H"]), 60, 15, 1, 1);
+
+                //echelle nuage = 1 pour 1
+
+                $pointsVille[$key] += $this->calcDegressif(PHP_ROUND_HALF_EVEN($weatherVille["N"]), 15, 10, 1, 1);
+            }
         }
+
+        if($pointsVille[0] > $pointsVille[1]){
+            return 0;
+        } else {
+            return 1;
+        } 
     }
 
 }  
