@@ -26,51 +26,70 @@ class WeatherTools
         $date = date("jnY");
         $resp = [];
 
+
         foreach ($data as $key => $city) {
+            if($this->params->get('weatherApiFreeVersion')){
+                // code pour la version gratuite de l'api weather
 
-            $url = "https://api-adresse.data.gouv.fr/search/?q=" . $city;
-            $cityArray = $this->getClientResponse($this->client, $url);
-            if(!$cityArray){
-                return ["error" => "Ville ". $city . " introuvable"];
-            }
-
-            if(isset($cityArray["features"]) && isset($cityArray["features"][0]['geometry']["coordinates"])){
-                // verif si on a bien des infos des villes.
-
-                // On cherche les infos en bdd si possible pour éviter de consommer l'api.
-                // Les infos sont journalières pour avoir des données météo fraiches, mais pas trop non plus
-                // (un équilibre entre consommation d'api et informations à jour)
-                 $weatherVille = $this->em->getRepository(WeatherVille::class)
-                            ->findOneBy(["date" => $date, "city" => $cityArray["features"][0]["properties"]["label"]]);
-
-                if($weatherVille) {
-                    $resp[] = $weatherVille->getWeather();
-                } else {
-
-                    $weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=".
-                    $cityArray["features"][0]['geometry']["coordinates"][1]."&lon=".
-                    $cityArray["features"][0]['geometry']["coordinates"][0]."&exclude=minutely,hourly&appid=".
-                    //$this->getParameter('weatherApiKey')."&lang=fr&units=metric";
-                    $this->params->get('weatherApiKey')."&lang=fr&units=metric";
-
-                    $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
-
-                    //TODO tester le retour de l'api
-
-                    $resp[] = $this->getTHN($weatherArray["daily"]);
-
-                    //save des valeurs.
-                    $weatherVille = new WeatherVille;
-                    $weatherVille->setCity($cityArray["features"][0]["properties"]["label"]);
-                    $weatherVille->setDate($date);
-                    $weatherVille->setWeather($resp[$key]);
-                    $this->em->persist($weatherVille);
-                    $this->em->flush();
+                //récupération des latLng de la ville
+                $url = "https://api-adresse.data.gouv.fr/search/?q=" . $city;
+                $cityArray = $this->getClientResponse($this->client, $url);
+                if(!$cityArray){
+                    return ["error" => "Ville ". $city . " introuvable"];
                 }
 
+                if(isset($cityArray["features"]) && isset($cityArray["features"][0]['geometry']["coordinates"])){
+                    // verif si on a bien des infos des villes.
+
+                    // On cherche les infos en bdd si possible pour éviter de consommer l'api.
+                    // Les infos sont journalières pour avoir des données météo fraiches, mais pas trop non plus
+                    // (un équilibre entre consommation d'api et informations à jour)
+                    $weatherVille = $this->em->getRepository(WeatherVille::class)
+                                ->findOneBy(["date" => $date, "city" => $cityArray["features"][0]["properties"]["label"]]);
+
+                    if($weatherVille) {
+                        $resp[] = $weatherVille->getWeather();
+                    } else {
+
+                        $weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=".
+                        $cityArray["features"][0]['geometry']["coordinates"][1]."&lon=".
+                        $cityArray["features"][0]['geometry']["coordinates"][0]."&exclude=minutely,hourly&appid=".
+                        //$this->getParameter('weatherApiKey')."&lang=fr&units=metric";
+                        $this->params->get('weatherApiKey')."&lang=fr&units=metric";
+
+                        $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
+
+                        //TODO tester le retour de l'api
+
+                        $resp[] = $this->getTHN($weatherArray["daily"]);
+
+                        //save des valeurs.
+                        $weatherVille = new WeatherVille;
+                        $weatherVille->setCity($cityArray["features"][0]["properties"]["label"]);
+                        $weatherVille->setDate($date);
+                        $weatherVille->setWeather($resp[$key]);
+                        $this->em->persist($weatherVille);
+                        $this->em->flush();
+                    }
+
+                } else {
+                    return ["error" => "Ville ". $value . " introuvable"];
+                } 
+
             } else {
-                return ["error" => "Ville ". $value . " introuvable"];
-            } 
+                // code pour la version payante de l'api weather
+
+                $jday = jddayofweek($date);
+                // Calcul du nombre de jours à demander à l'api + nbr des premiers jours à retirer.
+                if($jday > 0 ){
+                    $numberAskDay = 15 - $jday;
+                    $numberDayCutInArray = 7 - $jday;
+                } else {
+                    $numberAskDay = 8;
+                    $numberDayCutInArray = 0;
+                }
+
+            }
         }
 
         return $resp;
