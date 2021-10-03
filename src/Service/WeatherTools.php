@@ -199,7 +199,7 @@ class WeatherTools
     public function compareWeather($weatherArray, $mode){
 
         $pointsVille = [0, 0];
-        if($mode = "strict"){
+        if($mode == "strict"){
             //T°
             $notes = [$this->calcDegressif(intval(round($weatherArray[0]["T"], 0, PHP_ROUND_HALF_EVEN)), 27, 100, 1, 1), $this->calcDegressif(intval(round($weatherArray[1]["T"], 0, PHP_ROUND_HALF_EVEN)), 27, 100, 1, 1)];
             if($notes[0] > $notes[1]) {
@@ -231,7 +231,7 @@ class WeatherTools
             } 
         
 
-        } else if ($mode = "degressif"){
+        } else if ($mode == "degressif"){
             //ici plus la valeure s'éloigne de la valeur escompté, plus la note baisse.
 
 
