@@ -42,6 +42,11 @@ class ApiWeatherController extends AbstractController
         }
 
         $villeTop = $this->weatherTools->compareWeather($resp, $mode);
+        if(!$villeTop){
+            return $this->json([
+                "success" => "Les villes sont egales",
+            ]);
+        }
 
         return $this->json([
             "success" => $data[$villeTop],

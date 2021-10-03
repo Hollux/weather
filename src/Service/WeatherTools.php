@@ -4,16 +4,19 @@ namespace App\Service;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\WeatherVille; 
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
 class WeatherTools
 {
     private $entityManager;
     private $client;
+    private $params;
 
-    public function __construct(EntityManagerInterface $entityManager, HttpClientInterface $client)
+    public function __construct(EntityManagerInterface $entityManager, HttpClientInterface $client,ParameterBagInterface $params)
     {
         $this->client = $client;
         $this->em = $entityManager;
+        $this->params = $params;
     }
 
     public function GetRespFromData($data){
@@ -47,7 +50,8 @@ class WeatherTools
                     $weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=".
                     $cityArray["features"][0]['geometry']["coordinates"][1]."&lon=".
                     $cityArray["features"][0]['geometry']["coordinates"][0]."&exclude=minutely,hourly&appid=".
-                    $this->getParameter('weatherApiKey')."&lang=fr&units=metric";
+                    //$this->getParameter('weatherApiKey')."&lang=fr&units=metric";
+                    $this->params->get('weatherApiKey')."&lang=fr&units=metric";
 
                     $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
 
@@ -120,14 +124,15 @@ class WeatherTools
 
         $diff = 0;
         if($val > $valRef){
-            while ($val <= $valRef) {
+            while ($val >= $valRef) {
                 $val = $val-$echelle;
                 $diff++;
             }
         }
 
+
         if($val < $valRef){
-            while ($val >= $valRef) {
+            while ($val <= $valRef) {
                 $val = $val+$echelle;
                 $diff++;
             }
@@ -149,29 +154,36 @@ class WeatherTools
 
         $pointsVille = [0, 0];
         if($mode = "strict"){
-            //TODO: passer surement en mode strict pour vérifier les valeurs negatives de T°
             //T°
-            if(abs($weatherArray[0]["T"] - 27) > abs($weatherArray[1]["T"] - 27)) {
-                $pointsVille[0] = $pointsVille[0] +20;
-            } else {
-                $pointsVille[1] = $pointsVille[1] +20;
+            $notes = [$this->calcDegressif(intval(round($weatherArray[0]["T"], 0, PHP_ROUND_HALF_EVEN)), 27, 100, 1, 1), $this->calcDegressif(intval(round($weatherArray[1]["T"], 0, PHP_ROUND_HALF_EVEN)), 27, 100, 1, 1)];
+            if($notes[0] > $notes[1]) {
+                $pointsVille[0] += 20;
+            } else if($notes[0] < $notes[1]) {
+                $pointsVille[1] += 20;
+            }  else {
+                // les deux villes ont le même écart de la cible.
             } 
 
             //H
-            if($weatherArray[0]["H"] - 60 > $weatherArray[1]["H"] - 60) {
-                $pointsVille[0] = $pointsVille[0] +15;
-            } else {
-                $pointsVille[1] = $pointsVille[1] +15;
+            $notes = [$this->calcDegressif(intval(round($weatherArray[0]["H"], 0, PHP_ROUND_HALF_EVEN)), 60, 100, 1, 1), $this->calcDegressif(intval(round($weatherArray[1]["H"], 0, PHP_ROUND_HALF_EVEN)), 60, 100, 1, 1)];
+            if($notes[0] > $notes[1]) {
+                $pointsVille[0] += 15;
+            } else if($notes[0] < $notes[1]) {
+                $pointsVille[1] += 15;
+            }  else {
+                // les deux villes ont le même écart de la cible.
             } 
 
             //N
-            if($weatherArray[0]["N"] - 15 > $weatherArray[1]["N"] - 15) {
-                $pointsVille[0] = $pointsVille[0] +10;
-            } else {
-                $pointsVille[1] = $pointsVille[1] +10;
+            $notes = [$this->calcDegressif(intval(round($weatherArray[0]["N"], 0, PHP_ROUND_HALF_EVEN)), 15, 100, 1, 1), $this->calcDegressif(intval(round($weatherArray[0]["N"], 0, PHP_ROUND_HALF_EVEN)), 15, 100, 1, 1)];
+            if($notes[0] > $notes[1]) {
+                $pointsVille[0] += 10;
+            } else if($notes[0] < $notes[1]) {
+                $pointsVille[1] += 10;
+            }  else {
+                // les deux villes ont le même écart de la cible.
             } 
-
-            
+        
 
         } else if ($mode = "degressif"){
             //ici plus la valeure s'éloigne de la valeur escompté, plus la note baisse.
@@ -183,22 +195,24 @@ class WeatherTools
 
             foreach ($weatherArray as $key => $weatherVille) {
                 //echelle t° 1° pour 2points
-                $pointsVille[$key] += $this->calcDegressif(PHP_ROUND_HALF_EVEN($weatherVille["T"]), 27, 20, 1, 2);
+                $pointsVille[$key] += $this->calcDegressif(intval(round($weatherVille["T"], 0, PHP_ROUND_HALF_EVEN)), 27, 20, 1, 2);
 
                 //echelle humidité 1 pour 1
 
-                $pointsVille[$key] += $this->calcDegressif(PHP_ROUND_HALF_EVEN($weatherVille["H"]), 60, 15, 1, 1);
+                $pointsVille[$key] += $this->calcDegressif(intval(round($weatherVille["H"], 0, PHP_ROUND_HALF_EVEN)), 60, 15, 1, 1);
 
                 //echelle nuage = 1 pour 1
 
-                $pointsVille[$key] += $this->calcDegressif(PHP_ROUND_HALF_EVEN($weatherVille["N"]), 15, 10, 1, 1);
+                $pointsVille[$key] += $this->calcDegressif(intval(round($weatherVille["N"], 0, PHP_ROUND_HALF_EVEN)), 15, 10, 1, 1);
             }
         }
 
         if($pointsVille[0] > $pointsVille[1]){
             return 0;
-        } else {
+        } else if($pointsVille[0] < $pointsVille[1]) {
             return 1;
+        } else {
+            return null;
         } 
     }
 
