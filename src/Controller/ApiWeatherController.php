@@ -32,6 +32,9 @@ class ApiWeatherController extends AbstractController
     public function api_weather_villes($mode, Request $request)
     {
         //pour fonctionner : "data" => ["ville1", "ville2"]
+        //Attention, si on met des fautes d'orthographe l'api du gouvernement rattrape et peu trouver la ville.
+        // Par contre elle peux aussi en trouver une autre de ville et on ne verra pas la différence car je répond avec 
+        // la nom de ville demandé par le client pour que lui n'est pas d'erreur d'interprétation au retour.
         $data = json_decode($request->getContent(), true)["data"];
 
         $resp = $this->weatherTools->GetRespFromData($data);
