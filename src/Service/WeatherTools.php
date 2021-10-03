@@ -54,13 +54,13 @@ class WeatherTools
                         $weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=".
                         $cityArray["features"][0]['geometry']["coordinates"][1]."&lon=".
                         $cityArray["features"][0]['geometry']["coordinates"][0]."&exclude=minutely,hourly&appid=".
-                        //$this->getParameter('weatherApiKey')."&lang=fr&units=metric";
                         $this->params->get('weatherApiKey')."&lang=fr&units=metric";
 
                         $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
 
-                        //TODO tester le retour de l'api
-
+                        if(!isset($weatherArray["daily"])){
+                            return ["error" => "Ville ". $value . " introuvable"];
+                        }
                         $resp[] = $this->getTHN($weatherArray["daily"]);
 
                         //save des valeurs.
@@ -78,17 +78,44 @@ class WeatherTools
 
             } else {
                 // code pour la version payante de l'api weather
+                //TODO: tester le code avec la version payante.
+                 $weatherVille = $this->em->getRepository(WeatherVille::class)
+                                ->findOneBy(["date" => $date, "city" => $city]);
+                    if($weatherVille) {
+                        $resp[] = $weatherVille->getWeather();
+                    } else {
+                        $jday = jddayofweek($date);
+                        // Calcul du nombre de jours à demander à l'api + nbr des premiers jours à retirer.
+                        if($jday > 0 ){
+                            $numberAskDay = 15 - $jday;
+                            $numberDayCutInArray = 8 - $jday;
+                        } else {
+                            $numberAskDay = 8;
+                            $numberDayCutInArray = 1;
+                        }
 
-                $jday = jddayofweek($date);
-                // Calcul du nombre de jours à demander à l'api + nbr des premiers jours à retirer.
-                if($jday > 0 ){
-                    $numberAskDay = 15 - $jday;
-                    $numberDayCutInArray = 7 - $jday;
-                } else {
-                    $numberAskDay = 8;
-                    $numberDayCutInArray = 0;
-                }
+                        $weatherUrl = "https://api.openweathermap.org/data/2.5/forecast/daily?q=".
+                            $city.",FR&cnt=".$numberAskDay."&appid=".
+                            $this->params->get('weatherApiKey')."&lang=fr&units=metric";
+                        
+                        $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
 
+                        if(!isset($weatherArray["daily"])){
+                            return ["error" => "Ville ". $value . " introuvable"];
+                        }
+
+                        $nextWeakWeather = array_slice($weatherArray["daily"], $numberDayCutInArray);
+
+                        $resp[] = $this->getTHN($nextWeakWeather);
+
+                        //save des valeurs.
+                        $weatherVille = new WeatherVille;
+                        $weatherVille->setCity($city);
+                        $weatherVille->setDate($date);
+                        $weatherVille->setWeather($resp[$key]);
+                        $this->em->persist($weatherVille);
+                        $this->em->flush();
+                    } 
             }
         }
 
