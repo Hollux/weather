@@ -18,3 +18,5 @@ APP_ENV=dev
 APP_SECRET=1958a094f0e42722b8af0c447038327b
 ###< symfony/framework-bundle ###
 DATABASE_URL="mysql://login:password@target"
+weatherApiKey=key
+weatherApiFreeVersion=true

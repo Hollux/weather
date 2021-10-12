@@ -3,20 +3,17 @@ namespace App\Service;
 
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Doctrine\ORM\EntityManagerInterface;
-use App\Entity\WeatherVille; 
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use App\Entity\WeatherVille;
 
 class WeatherTools
 {
     private $entityManager;
     private $client;
-    private $params;
 
-    public function __construct(EntityManagerInterface $entityManager, HttpClientInterface $client,ParameterBagInterface $params)
+    public function __construct(EntityManagerInterface $entityManager, HttpClientInterface $client)
     {
         $this->client = $client;
         $this->em = $entityManager;
-        $this->params = $params;
     }
 
     public function GetRespFromData($data){
@@ -28,7 +25,7 @@ class WeatherTools
 
 
         foreach ($data as $key => $city) {
-            if($this->params->get('weatherApiFreeVersion')){
+            if($_ENV['weatherApiFreeVersion']){
                 // code pour la version gratuite de l'api weather
 
                 //récupération des latLng de la ville
@@ -54,7 +51,7 @@ class WeatherTools
                         $weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=".
                         $cityArray["features"][0]['geometry']["coordinates"][1]."&lon=".
                         $cityArray["features"][0]['geometry']["coordinates"][0]."&exclude=minutely,hourly&appid=".
-                        $this->params->get('weatherApiKey')."&lang=fr&units=metric";
+                        $_ENV['weatherApiKey']."&lang=fr&units=metric";
 
                         $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
 
@@ -96,7 +93,7 @@ class WeatherTools
 
                         $weatherUrl = "https://api.openweathermap.org/data/2.5/forecast/daily?q=".
                             $city.",FR&cnt=".$numberAskDay."&appid=".
-                            $this->params->get('weatherApiKey')."&lang=fr&units=metric";
+                            $_ENV['weatherApiKey']."&lang=fr&units=metric";
                         
                         $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
 
