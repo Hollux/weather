@@ -56,3 +56,4 @@
 
 # infos secretes
 .env
+config/services.yaml
