@@ -15,12 +15,6 @@ use App\Service\WeatherTools;
 
 class ApiWeatherController extends AbstractController
 {
-    private $weatherTools;
-
-    public function __construct(WeatherTools $weatherTools)
-    {
-        $this->weatherTools = $weatherTools;
-    }
 
      /**
      * @Route("/api_weather_villes/{mode}", 
@@ -29,7 +23,7 @@ class ApiWeatherController extends AbstractController
      * requirements={"mode"="strict|degressif"},
      * methods="POST")
      */
-    public function api_weather_villes($mode, Request $request)
+    public function api_weather_villes($mode, Request $request, WeatherTools $weatherTools)
     {
         //pour fonctionner : "data" => ["ville1", "ville2"]
         //Attention, si on met des fautes d'orthographe l'api du gouvernement rattrape et peu trouver la ville.
@@ -37,14 +31,14 @@ class ApiWeatherController extends AbstractController
         // la nom de ville demandé par le client pour que lui n'est pas d'erreur d'interprétation au retour.
         $data = json_decode($request->getContent(), true)["data"];
 
-        $resp = $this->weatherTools->GetRespFromData($data);
+        $resp = $weatherTools->GetRespFromData($data);
         if(isset($resp['error'])) {
             return $this->json([
                     "error" => $resp['error']
                 ]);
         }
 
-        $villeTop = $this->weatherTools->compareWeather($resp, $mode);
+        $villeTop = $weatherTools->compareWeather($resp, $mode);
         if($villeTop === null){
             return $this->json([
                 "success" => "Les villes sont egales",
