@@ -51,6 +51,34 @@ class ApiWeatherController extends AbstractController
     } 
 
 
+
+    /**
+     * @Route("/api_weather_detail/{ville}", 
+     * defaults={"ville": "colmar"},
+     * name="api_weather_detail")
+     */
+    public function api_weather_detail($ville, Request $request, WeatherTools $weatherTools)
+    {
+
+        if($ville == "taville"){
+            return $this->json([
+                    "error" => "MAIS NON PUNAISE METS LA VILLE QUE TU VEUX PAS #TAVILLE#"
+                ]);
+        }
+
+        $resp = $weatherTools->getAllFromVille($ville);
+        if(isset($resp['error'])) {
+            return $this->json([
+                    "error" => $resp['error']
+                ]);
+        }
+
+        return $this->json([
+            "success" => $resp,
+        ]);
+    } 
+
+
     /**
      * @Route("/test", name="test")
      */

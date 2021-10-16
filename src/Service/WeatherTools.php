@@ -259,4 +259,33 @@ class WeatherTools
         } 
     }
 
+    public function getAllFromVille($city) {
+        
+        //récupération des latLng de la ville
+        $url = "https://api-adresse.data.gouv.fr/search/?q=" . $city;
+        $cityArray = $this->getClientResponse($this->client, $url);
+        if(!$cityArray){
+            return ["error" => "Ville ". $city . " introuvable"];
+        }
+
+        if(isset($cityArray["features"]) && isset($cityArray["features"][0]['geometry']["coordinates"])){
+            // verif si on a bien des infos des villes.
+
+            $weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=".
+            $cityArray["features"][0]['geometry']["coordinates"][1]."&lon=".
+            $cityArray["features"][0]['geometry']["coordinates"][0]."&exclude=minutely,hourly&appid=".
+            $_ENV['weatherApiKey']."&lang=fr&units=metric";
+
+            $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
+
+            if(!isset($weatherArray["daily"])){
+                return ["error" => "Ville ". $city . " introuvable"];
+            }
+        } else {
+            return ["error" => "Ville ". $city . " introuvable"];
+        } 
+
+        return $weatherArray;
+    }
+
 }  
