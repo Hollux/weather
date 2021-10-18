@@ -51,7 +51,6 @@ class ApiWeatherController extends AbstractController
     } 
 
 
-
     /**
      * @Route("/api_weather_detail/{ville}", 
      * defaults={"ville": "colmar"},
