@@ -77,6 +77,25 @@ class ApiWeatherController extends AbstractController
         ]);
     } 
 
+     /**
+     * @Route("/api_weather_test2", 
+     * name="api_weather_test2")
+     */
+    public function api_weather_test2(WeatherTools $weatherTools)
+    {
+        $resp = $weatherTools->getTest2();
+        if(isset($resp['error'])) {
+            return $this->json([
+                    "error" => $resp['error']
+                ]);
+        }
+
+        return $this->json([
+            "success" => $resp,
+        ]);
+
+    } 
+
 
     /**
      * @Route("/test", name="test")

@@ -4,6 +4,7 @@ namespace App\Service;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\WeatherVille;
+use App\Entity\WeatherHWminutely;
 
 class WeatherTools
 {
@@ -286,6 +287,44 @@ class WeatherTools
         } 
 
         return $weatherArray;
+    }
+
+    public function getTest2(){
+            $dt = time();
+            $historicalDT = $dt - 432000;
+
+            $weatherUrl = "https://api.openweathermap.org/data/2.5/onecall/timemachine?lat=48.081&lon=7.4022&dt=".$historicalDT."&appid=".
+            $_ENV['weatherApiKey']."&lang=fr&units=metric";
+
+            $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
+
+            // if(!isset($weatherArray["daily"])){
+            //     return ["error" => "Ville ". $city . " introuvable"];
+            // }
+
+            return $weatherArray;
+    }
+
+
+    public function setMinutelyHW(){
+         $weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=48.081&lon=7.4022&exclude=minutely,hourly,daily&appid=".
+            $_ENV['weatherApiKey']."&lang=fr&units=metric";
+
+            $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
+
+            if($weatherArray){
+                //save.
+                $save = new WeatherHWminutely;
+                $save->setDt($weatherArray["current"]["dt"]);
+                $save->setTemp($weatherArray["current"]["temp"]);
+                $save->setPressure($weatherArray["current"]["pressure"]);
+                $save->setHumidity($weatherArray["current"]["humidity"]);
+                $save->setUvi($weatherArray["current"]["uvi"]);
+                $save->setWindSpeed($weatherArray["current"]["wind_speed"]);
+                $save-> setWindDeg($weatherArray["current"]["wind_deg"]);
+                $this->em->persist($save);
+                $this->em->flush();
+            }
     }
 
 }  

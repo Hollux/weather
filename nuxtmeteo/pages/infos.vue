@@ -1,6 +1,6 @@
 <template>
   <b-container class="component">
-    <h1 class="text-center">Meteo</h1>
+    <h1 class="text-center">Meteo page 2</h1>
     <br />
 
     <div>
@@ -43,6 +43,10 @@
                 <b-list-group-item
                   >Pression : {{ data.pressure }} hPa
                 </b-list-group-item>
+              </b-list-group>
+            </b-col>
+            <b-col>
+              <b-list-group>
                 <b-list-group-item
                   >Vitesse du vent :
                   {{ data.wind_speed * 3.6 }} km/h</b-list-group-item
@@ -50,14 +54,14 @@
                 <b-list-group-item
                   >Orientation du vent : {{ data.wind_deg }}°</b-list-group-item
                 >
-              </b-list-group>
-            </b-col>
-            <b-col>
-              <b-list-group>
                 <b-list-group-item
                   >Description : {{ data.weather[0].description }}
                 </b-list-group-item>
                 <b-list-group-item> uvi : {{ data.uvi }} </b-list-group-item>
+              </b-list-group>
+            </b-col>
+            <b-col>
+              <b-list-group>
                 <b-list-group-item>
                   heure des infos : {{ $dayjs(data.dt * 1000).format("HH:mm") }}
                 </b-list-group-item>
@@ -69,66 +73,6 @@
                   couché du soleil :
                   {{ $dayjs(data.sunset * 1000).format("HH:mm") }}
                 </b-list-group-item>
-              </b-list-group>
-            </b-col>
-            <b-col>
-              <b-list-group>
-                <b-list-group-item
-                  >dt / date :{{
-                    $dayjs(data.dt * 1000).format("DD:MM:YYYY")
-                  }}</b-list-group-item
-                >
-                <b-list-group-item
-                  >sunrise / levé de soleil :
-                  {{
-                    $dayjs(data.sunrise * 1000).format("HH:mm")
-                  }}</b-list-group-item
-                >
-                <b-list-group-item
-                  >sunset / couché de soleil :
-                  {{
-                    $dayjs(data.sunset * 1000).format("HH:mm")
-                  }}</b-list-group-item
-                >
-                <b-list-group-item
-                  >temp / t° : {{ data.temp }}°</b-list-group-item
-                >
-                <b-list-group-item
-                  >feels_like / t° resenti :
-                  {{ data.feels_like }}°</b-list-group-item
-                >
-                <b-list-group-item
-                  >pressure / pression :
-                  {{ data.pressure }} hPa</b-list-group-item
-                >
-                <b-list-group-item
-                  >humidity / humidité : {{ data.humidity }}%</b-list-group-item
-                >
-                <b-list-group-item
-                  >dew_point / point de rosé :
-                  {{ data.dew_point }}°</b-list-group-item
-                >
-                <b-list-group-item
-                  >uvi / uv index : {{ data.uvi }}</b-list-group-item
-                >
-                <b-list-group-item
-                  >clouds / nuages : {{ data.clouds }}</b-list-group-item
-                >
-                <b-list-group-item
-                  >visibility / visivilité : {{ data.visibility }}
-                </b-list-group-item>
-                <b-list-group-item
-                  >wind_speed / vitesse du vent :
-                  {{ data.wind_speed }}</b-list-group-item
-                >
-                <b-list-group-item
-                  >wind_deg / degré du vent
-                  {{ data.wind_deg }}°</b-list-group-item
-                >
-                <b-list-group-item
-                  >weather [] / meteo [] :
-                  {{ data.weather[0].description }}</b-list-group-item
-                >
               </b-list-group>
             </b-col>
             <b-col>{{ data }}</b-col>
