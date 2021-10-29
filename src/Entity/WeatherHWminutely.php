@@ -18,7 +18,7 @@ class WeatherHWminutely
     private $id;
 
     /**
-     * @ORM\Column(type="string", length=16)
+     * @ORM\Column(type="integer")
      */
     private $dt;
 
@@ -57,12 +57,12 @@ class WeatherHWminutely
         return $this->id;
     }
 
-    public function getDt(): ?string
+    public function getDt(): ?int
     {
         return $this->dt;
     }
 
-    public function setDt(string $dt): self
+    public function setDt(int $dt): self
     {
         $this->dt = $dt;
 
@@ -139,5 +139,19 @@ class WeatherHWminutely
         $this->wind_deg = $wind_deg;
 
         return $this;
+    }
+
+    public function toArray(){
+        $array = [
+            "dt" => $this->dt,
+            "temp" => $this->temp,
+            "pressure" => $this->pressure,
+            "humidity" => $this->humidity,
+            "uvi" => $this->uvi,
+            "wind_speed" => $this->wind_speed,
+            "wind_deg" => $this->wind_deg
+        ];
+
+        return $array;
     }
 }

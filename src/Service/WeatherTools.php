@@ -321,10 +321,63 @@ class WeatherTools
                 $save->setHumidity($weatherArray["current"]["humidity"]);
                 $save->setUvi($weatherArray["current"]["uvi"]);
                 $save->setWindSpeed($weatherArray["current"]["wind_speed"]);
-                $save-> setWindDeg($weatherArray["current"]["wind_deg"]);
+                $save->setWindDeg($weatherArray["current"]["wind_deg"]);
+                // a rajouter dans la bdd
+                //$save->setWindDeg($weatherArray["current"]["dew_point"]);
+                //$save->setWindDeg($weatherArray["current"]["feels_like"]);
+                // /a rajouter dans la bdd
                 $this->em->persist($save);
                 $this->em->flush();
             }
+    }
+
+    public function setDailyHW($save = false){
+        $dtNow = new \DateTime();
+        $dtNow = $dtNow->getTimestamp();
+        $dt24h = $dtNow - 86400;
+
+        $result = $this->em->getRepository(WeatherHWminutely::class)->getAllInDtMinMax($dt24h, $dtNow);
+
+        if($result){
+            $min = 1000000;
+            $maxi = -$min;
+            $infoSouhaite = ["temp", "pressure", "humidity", "uvi", "wind_speed"];
+            $finalInfos = [];
+            foreach($infoSouhaite as $info){
+                if($info == "wind_speed"){
+                    $finalInfos[$info] = [$min, 0, $maxi, 0, 0, 0];
+                    continue;
+                }
+                $finalInfos[$info] = [$min, 0, $maxi, 0];
+            }
+
+            foreach($result as $ligne){
+                $ligne = $ligne->toArray();
+                foreach($finalInfos as $key => $val){
+                    if($finalInfos[$key][0] > $ligne[$key]){
+                        $finalInfos[$key][0] = $ligne[$key];
+                        $finalInfos[$key][1] = $ligne["dt"];
+                        if($key == 'wind_speed'){
+                            $finalInfos[$key][4] = $ligne["wind_deg"];
+                        }
+                    }
+                    if($finalInfos[$key][2] < $ligne[$key]){
+                        $finalInfos[$key][2] = $ligne[$key];
+                        $finalInfos[$key][3] = $ligne["dt"];
+                        if($key == 'wind_speed'){
+                            $finalInfos[$key][5] = $ligne["wind_deg"];
+                        }
+                    }
+                }
+            }
+
+
+            return $finalInfos;
+        }
+
+
+        return null;
+
     }
 
 }  

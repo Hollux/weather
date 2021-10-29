@@ -19,6 +19,20 @@ class WeatherHWminutelyRepository extends ServiceEntityRepository
         parent::__construct($registry, WeatherHWminutely::class);
     }
 
+    public function getAllInDtMinMax($min, $max)
+    {
+        return $this->createQueryBuilder('w')
+            ->select('w')
+            ->setParameter('min', $min)
+            ->setParameter('max', $max)
+            ->Where('w.dt >= :min')
+            ->AndWhere('w.dt <= :max')
+            ->getQuery()
+            ->getResult()
+            ;
+    }
+
+
     // /**
     //  * @return WeatherHWminutely[] Returns an array of WeatherHWminutely objects
     //  */

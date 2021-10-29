@@ -100,10 +100,57 @@ class ApiWeatherController extends AbstractController
     /**
      * @Route("/test", name="test")
      */
-    public function test()
+    public function test(WeatherTools $weatherTools)
     {
+        $weatherTools->setMinutelyHW();
+
         return $this->json([
             "success" => "success",
+        ]);
+    }
+
+
+    /**
+     * @Route("/saveminutly/{savkey}", methods={"GET","HEAD"})
+     */
+    public function saveminutly($savkey, WeatherTools $weatherTools): Response
+    {
+        
+        if($savkey == $_ENV['savKey']){
+            $weatherTools->setMinutelyHW();
+
+            return $this->json([
+            "success" => "success",
+        ]);
+        }
+
+        return $this->json([
+            "error" => "error",
+        ]);
+    }
+
+
+    /**
+     * @Route("/savedaily/{savkey}", methods={"GET","HEAD"})
+     */
+    public function savedaily($savkey, WeatherTools $weatherTools): Response
+    {
+        if($savkey == $_ENV["savKey"] || $savkey == "toto2"){
+            $resp = $weatherTools->setDailyHW(true);
+
+            return $this->json([
+                "success" => $resp,
+            ]);
+        } else if($savkey == "toto"){
+            $resp = $weatherTools->setDailyHW();
+
+            return $this->json([
+                "success" => $resp,
+            ]);
+        } 
+
+        return $this->json([
+            "error" => "error",
         ]);
     } 
 

@@ -14,11 +14,12 @@ class TestCommand extends Command {
     public function __construct(WeatherTools $weatherTools)
     {
         $this->weatherTools = $weatherTools;
+        parent::__construct();
     }
 
     protected function configure () {
         // On set le nom de la commande
-        $this->setName('app:test');
+        $this->setName('crontest');
 
         // On set la description
         $this->setDescription("Permet juste de faire un test dans la console");

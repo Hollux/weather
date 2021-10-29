@@ -3,9 +3,27 @@
     <h1 class="text-center">Meteo</h1>
     <br />
 
+    <h2>Infos V2</h2>
+
+    <div v-for="(datav2, key) in dataHWv2['success']" :title="key" v-bind="key">
+      <br />
+      <p>
+        {{ key }} : <strong>{{ dataHW.current[key] }}</strong> , mini :
+        {{ datav2[0] }} le
+        {{ $dayjs(datav2[1] * 1000).format("DD:MM:YYYY à HH") }}h{{
+          $dayjs(datav2[1] * 1000).format("mm")
+        }}, maxi : {{ datav2[2] }} le
+        {{ $dayjs(datav2[3] * 1000).format("DD:MM:YYYY à HH") }}h{{
+          $dayjs(datav2[3] * 1000).format("mm")
+        }}
+      </p>
+    </div>
+    <div class="margin"></div>
+
+    <h2>Infos V1</h2>
     <div>
       <b-tabs content-class="mt-3">
-        <b-tab v-for="(data, key) in dataHW" :title="key" v-bind:key>
+        <b-tab v-for="(data, key) in dataHW" :title="key" v-bind="key">
           <!-- CURRENT -->
           <!-- <p>baro, thermo, hygro, vent</p>
           <p>pluie, point de rosée, uv</p>
@@ -207,6 +225,7 @@ export default {
   data() {
     return {
       dataHW: [],
+      dataHWv2: [],
     };
   },
   async fetch() {
@@ -215,6 +234,9 @@ export default {
         "https://weather.hollux.fr/api_weather_detail/horbourg-wihr"
       ).then((res) => res.json())
     );
+    this.dataHWv2 = await fetch(
+      "https://weather.hollux.fr/savedaily/toto"
+    ).then((res) => res.json());
   },
 };
 
@@ -229,3 +251,9 @@ function dataFilter(data) {
   return resp;
 }
 </script>
+
+<style scoped>
+.margin {
+  margin-bottom: 60px;
+}
+</style>
