@@ -29,6 +29,7 @@ export default {
 
   // Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
   plugins: [
+    '~plugins/globalFunction.js',
   ],
 
   // Auto import components: https://go.nuxtjs.dev/config-components
@@ -51,7 +52,25 @@ export default {
   ],
 
   // Axios module configuration: https://go.nuxtjs.dev/config-axios
-  axios: {},
+  axios: {
+    proxy: true
+  },
+  proxy: {
+    '/api': {
+      target: 'https://weather.hollux.fr',
+      pathRewrite: {
+        '^/': '/'
+      }
+    }
+  },
+  toast: {
+    position: 'top-center',
+    duration: 4000
+  },
+  dayjs: {
+    locales: ['fr'],
+    defaultLocale: 'fr'
+  },
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {

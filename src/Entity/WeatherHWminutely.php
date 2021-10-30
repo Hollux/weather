@@ -154,4 +154,5 @@ class WeatherHWminutely
 
         return $array;
     }
+    
 }

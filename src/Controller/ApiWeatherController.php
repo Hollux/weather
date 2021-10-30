@@ -154,4 +154,35 @@ class ApiWeatherController extends AbstractController
         ]);
     } 
 
+
+    /**
+     * @Route("/api/getminutly")
+     */
+    public function getminutly(WeatherTools $weatherTools, Request $request): Response
+    {
+        $data = json_decode($request->getContent(), true)["data"];
+        $min = strtotime($data[0]);
+        $max = strtotime($data[1])+86399;
+
+        if($min && $max){
+            $resp = $weatherTools->getMinutlyWithMinMax($min, $max);
+            $arrayResp = [];
+            foreach ($resp as $key => $value) {
+               $arrayResp[] = $value->toArray(); 
+            }
+
+            return $this->json([
+                "success" => "success",
+                "infos" => $arrayResp
+            ]);
+        }
+
+        return $this->json([
+            "error" => "no min max",
+        ]);
+    } 
+
+
+    
+
 } 

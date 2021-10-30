@@ -380,4 +380,11 @@ class WeatherTools
 
     }
 
+
+    public function getMinutlyWithMinMax($min, $max){
+        $result = $this->em->getRepository(WeatherHWminutely::class)->getAllInDtMinMax($min, $max);
+
+        return $result;
+    }
+
 }  
