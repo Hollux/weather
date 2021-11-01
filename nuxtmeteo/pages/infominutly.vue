@@ -21,25 +21,16 @@
       striped
       hover
       responsive="sm"
-      :sort-by.sync="sortBy"
-      :filter="filter"
       :filterIncludedFields="filterOn"
-      @filtered="onFiltered"
-      @row-clicked="onRowClick"
       :items="dataMinutly"
       :fields="fields"
-      :small="small"
     >
       <template #cell(dt)="data">
-        {{ $dayjs(data.item.dt * 1000).format("HH") }}h{{
+        {{ $dayjs(data.item.dt * 1000).format("D/MM à HH") }}h{{
           $dayjs(data.item.dt * 1000).format("mm")
         }}
       </template>
     </b-table>
-
-    <div v-if="dataMinutly" v-for="(data, key) in dataMinutly" v-bind:key>
-      <p>{{ data }}</p>
-    </div>
   </b-container>
 </template>
 
@@ -84,7 +75,6 @@ export default {
 
       returnAxios.then((value) => {
         if (value[0] == true) {
-          console.log(this.min, this.max, value, returnAxios);
           this.dataMinutly = value[1];
         }
       });

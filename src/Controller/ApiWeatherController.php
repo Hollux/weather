@@ -65,7 +65,8 @@ class ApiWeatherController extends AbstractController
                 ]);
         }
 
-        $resp = $weatherTools->getAllFromVille($ville);
+        //modif version hw only
+        $resp = $weatherTools->getAllFromhw();
         if(isset($resp['error'])) {
             return $this->json([
                     "error" => $resp['error']

@@ -274,7 +274,7 @@ class WeatherTools
 
             $weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=".
             $cityArray["features"][0]['geometry']["coordinates"][1]."&lon=".
-            $cityArray["features"][0]['geometry']["coordinates"][0]."&exclude=minutely,hourly&appid=".
+            $cityArray["features"][0]['geometry']["coordinates"][0]."&exclude=minutely,hourly,daily&appid=".
             $_ENV['weatherApiKey']."&lang=fr&units=metric";
 
             $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
@@ -286,6 +286,17 @@ class WeatherTools
             return ["error" => "Ville ". $city . " introuvable"];
         } 
 
+        return $weatherArray;
+    }
+
+
+    public function getAllFromhw() {
+ 
+        $weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=48.081&lon=7.4022&exclude=minutely,hourly,daily&appid=".
+        $_ENV['weatherApiKey']."&lang=fr&units=metric";
+
+        $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
+        
         return $weatherArray;
     }
 
