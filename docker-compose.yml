@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  front:
+    container_name: ${PROJECT_NAME}_front
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    environment:
+      - NODE_OPTIONS=--openssl-legacy-provider
+    ports:
+      - "${FRONT_PORT}:3000"
+    volumes:
+      - ./front:/app/front
+      - /app/front/node_modules
+
+  back:
+    container_name: ${PROJECT_NAME}_back
+    build:
+      context: ./symfony
+      dockerfile: Dockerfile
+    volumes:
+      - ./symfony:/var/www/html
+    ports:
+      - "${BACK_PORT}:8000"
+    restart: always
+    environment:
+      APP_ENV: ${APP_ENV}
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      - db
+      - php-fpm
+
+  php-fpm:
+    container_name: ${PROJECT_NAME}_phpfpm
+    build:
+      context: ./php-fpm
+    volumes:
+      - ./symfony:/var/www/html
+    depends_on:
+      - db
+
+  db:
+    container_name: ${PROJECT_NAME}_db
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "${DB_PORT}:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  phpmyadmin:
+    container_name: ${PROJECT_NAME}_phpmyadmin
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "${PHPMYADMIN_PORT}:80"
+    depends_on:
+      - db
+
+  nginx:
+    container_name: ${PROJECT_NAME}_nginx
+    image: nginx:latest
+    ports:
+      - "${NGINX_PORT}:80"
+    volumes:
+      - ./symfony:/var/www/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php-fpm
+
+volumes:
+  db_data:
