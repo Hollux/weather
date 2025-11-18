@@ -27,6 +27,7 @@ class WeatherHWminutelyRepository extends ServiceEntityRepository
             ->setParameter('max', $max)
             ->Where('w.dt >= :min')
             ->AndWhere('w.dt <= :max')
+            ->orderBy('w.dt', 'ASC')
             ->getQuery()
             ->getResult()
             ;

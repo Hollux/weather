@@ -9,6 +9,7 @@
     "generate": "nuxt generate"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.1.0",
     "@nuxtjs/auth": "^4.9.1",
     "@nuxtjs/axios": "^5.13.6",
     "@nuxtjs/dayjs": "^1.4.1",
@@ -17,6 +18,5 @@
     "core-js": "^3.19.0",
     "nuxt": "^2.15.7",
     "vue-google-charts": "^0.3.3"
-  },
-  "devDependencies": {}
+  }
 }

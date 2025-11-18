@@ -1,3 +1,12 @@
+# Docker
+Make build
+Make up / docker-compose up -d
+docker compose exec back composer install
+
+# utile
+
+docker compose exec back php -r "var_dump(getenv('DATABASE_URL'));"
+
 # weather
 Applications comparrant 3 elements de meteo sur les 7 prochains jours ou la semaine suivante si on prend l'application payante de l'api https://openweathermap.org/price
 

@@ -292,12 +292,16 @@ class WeatherTools
 
     public function getAllFromhw() {
  
-        $weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=48.081&lon=7.4022&exclude=minutely,hourly,daily&appid=".
-        $_ENV['weatherApiKey']."&lang=fr&units=metric";
+        //$weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=48.081&lon=7.4022&exclude=minutely,hourly,daily&appid=".
+        //$_ENV['weatherApiKey']."&lang=fr&units=metric";
 
-        $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
+        //$weatherArray = $this->getClientResponse($this->client, $weatherUrl);
+
+        // Récupéreration des données HW en base de données.
+        $weatherArray = $this->em->getRepository(WeatherHWminutely::class)->findOneBy([], ['dt' => 'DESC']);
+        //dd($weatherArray);
         
-        return $weatherArray;
+        return $weatherArray->toArray();
     }
 
     public function getTest2(){
@@ -318,10 +322,12 @@ class WeatherTools
 
 
     public function setMinutelyHW(){
-         $weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=48.081&lon=7.4022&exclude=minutely,hourly,daily&appid=".
+        //https://api.openweathermap.org/data/2.5/weather?q=London&appid=23e67e8262fb30f212afb7102fc4dbe0
+         $weatherUrl = "https://api.openweathermap.org/data/3.0/onecall?lat=48.081&lon=7.4022&exclude=minutely,hourly,daily&appid=".
             $_ENV['weatherApiKey']."&lang=fr&units=metric";
 
             $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
+            //dd($weatherUrl, $weatherArray);
 
             if($weatherArray){
                 //save.

@@ -154,12 +154,37 @@ export default {
     };
   },
   async fetch() {
-    this.dataHW = dataFilter(
+    const baseUrl = process.server ? 'http://weather.hollux.fr' : ''
+
+    this.dataHW = 
       await fetch(
-        "https://weather.hollux.fr/api_weather_detail/horbourg-wihr"
-      ).then((res) => res.json())
-    );
+        process.server
+          ? `${baseUrl}/api_weather_detail/horbourg-wihr`
+          : `/api/api_weather_detail/horbourg-wihr`
+      ).then(res => res.json());
   },
+
+  async fetch() {
+    const baseUrl = process.server ? 'http://weather.hollux.fr' : ''
+    
+    this.dataHW = 
+      await fetch(
+        process.server
+          ? `${baseUrl}/api_weather_detail/horbourg-wihr`
+          : `/api/api_weather_detail/horbourg-wihr`
+      ).then(res => res.json());
+
+    this.dataHWv2 = await fetch(
+      process.server
+        ? `${baseUrl}/savedaily/toto`
+        : `/api/savedaily/toto`
+    ).then(res => res.json());
+  },
+
+
+
+
+
 };
 
 function dataFilter(data) {

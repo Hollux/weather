@@ -157,7 +157,7 @@ class ApiWeatherController extends AbstractController
 
 
     /**
-     * @Route("/api/getminutly")
+     * @Route("/getminutly")
      */
     public function getminutly(WeatherTools $weatherTools, Request $request): Response
     {
@@ -166,6 +166,13 @@ class ApiWeatherController extends AbstractController
         $max = strtotime($data[1])+86399;
 
         if($min && $max){
+            // limiter l'intervalle à 3 mois (95 jours)
+            if(($max - $min) > 8208000){
+                return $this->json([
+                    "error" => "intervalle trop grand, max 3 mois",
+                ]);
+            }
+
             $resp = $weatherTools->getMinutlyWithMinMax($min, $max);
             $arrayResp = [];
             foreach ($resp as $key => $value) {

@@ -20,6 +20,7 @@
     <template v-if="charDataF.temp">
       <GChart type="AreaChart" :data="charDataF.temp" :options="chartOptions" />
     </template>
+
     <template v-if="charDataF.pressure">
       <GChart
         type="AreaChart"
@@ -27,6 +28,7 @@
         :options="chartOptions"
       />
     </template>
+
     <template v-if="charDataF.humidity">
       <GChart
         type="AreaChart"
@@ -34,9 +36,11 @@
         :options="chartOptions"
       />
     </template>
+
     <template v-if="charDataF.uvi">
       <GChart type="AreaChart" :data="charDataF.uvi" :options="chartOptions" />
     </template>
+
     <template v-if="charDataF.wind_speed">
       <GChart
         type="AreaChart"
@@ -55,13 +59,6 @@ export default {
     return {
       chartData: [],
       charDataF: [],
-      chartData2: [
-        ["Year", "Sales", "Expenses", "Profit"],
-        ["2014", 1000, 400, 200],
-        ["2015", 1170, 460, 250],
-        ["2016", 660, 1120, 300],
-        ["2017", 1030, 540, 350],
-      ],
       min: "",
       max: "",
       chartOptions: {
@@ -81,7 +78,6 @@ export default {
       returnAxios.then((value) => {
         if (value[0] == true) {
           this.chartData = value[1];
-          console.log(dataFormat(value[1]));
           this.charDataF = dataFormat(value[1]);
         }
       });
@@ -99,19 +95,22 @@ function dataFormat(data) {
     dataFormated.uvi = [["dt", "uvi"]];
     dataFormated.wind_speed = [["dt", "wind_speed"]];
 
+
+
     data.forEach((dat) => {
-      dataFormated.temp.push([parseFloat(dat.dt), parseFloat(dat.temp)]);
+      dataFormated.temp.push([new Date(dat.dt * 1000), parseFloat(dat.temp)]);
+      // Afficher dans la console la dt
       dataFormated.pressure.push([
-        parseFloat(dat.dt),
+        new Date(dat.dt * 1000),
         parseFloat(dat.pressure),
       ]);
       dataFormated.humidity.push([
-        parseFloat(dat.dt),
+        new Date(dat.dt * 1000),
         parseFloat(dat.humidity),
       ]);
-      dataFormated.uvi.push([parseFloat(dat.dt), parseFloat(dat.uvi)]);
+      dataFormated.uvi.push([new Date(dat.dt * 1000), parseFloat(dat.uvi)]);
       dataFormated.wind_speed.push([
-        parseFloat(dat.dt),
+        new Date(dat.dt * 1000),
         parseFloat(dat.wind_spee),
       ]);
     });

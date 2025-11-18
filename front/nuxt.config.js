@@ -1,8 +1,10 @@
+import fetch from 'node-fetch'
+
 export default {
   // Target: https://go.nuxtjs.dev/config-target
   target: 'static',
   server: {
-    port: 3137, // par défaut: 3000
+    port: 3000, // par défaut: 3000
     host: '0.0.0.0' // par défaut: localhost
   },
 
@@ -25,6 +27,7 @@ export default {
 
   // Global CSS: https://go.nuxtjs.dev/config-css
   css: [
+    '@fortawesome/fontawesome-free/css/all.css'
   ],
 
   // Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
@@ -57,10 +60,10 @@ export default {
     proxy: true
   },
   proxy: {
-    '/': {
-      target: 'https://weather.hollux.fr',
+    '/api': {
+      target: 'https://weather.hollux.fr/',
       pathRewrite: {
-        '^/': '/'
+        '^/api': ''
       }
     }
   },
