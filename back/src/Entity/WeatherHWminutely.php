@@ -52,6 +52,11 @@ class WeatherHWminutely
      */
     private $wind_deg;
 
+    /**
+     * @ORM\Column(type="string", length=8, nullable=true)
+     */
+    private $wind_speed_kmh;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -148,11 +153,23 @@ class WeatherHWminutely
             "pressure" => $this->pressure,
             "humidity" => $this->humidity,
             "uvi" => $this->uvi,
-            "wind_speed" => $this->wind_speed,
+            "wind_speed" => $this->wind_speed_kmh,
             "wind_deg" => $this->wind_deg
         ];
 
         return $array;
+    }
+
+    public function getWindSpeedKmh(): ?string
+    {
+        return $this->wind_speed_kmh;
+    }
+
+    public function setWindSpeedKmh(?string $wind_speed_kmh): self
+    {
+        $this->wind_speed_kmh = $wind_speed_kmh;
+
+        return $this;
     }
     
 }

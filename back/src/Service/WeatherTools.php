@@ -338,6 +338,7 @@ class WeatherTools
                 $save->setHumidity($weatherArray["current"]["humidity"]);
                 $save->setUvi($weatherArray["current"]["uvi"]);
                 $save->setWindSpeed($weatherArray["current"]["wind_speed"]);
+                $save->setWindSpeedKmh($weatherArray["current"]["wind_speed"] * 3.6);
                 $save->setWindDeg($weatherArray["current"]["wind_deg"]);
                 // a rajouter dans la bdd
                 //$save->setWindDeg($weatherArray["current"]["dew_point"]);

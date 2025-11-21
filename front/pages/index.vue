@@ -32,6 +32,11 @@
             </div>
 
             <div class="text-center">
+              <span class="label-now"></span>
+              <div class="temp-now">{{ dataHW.success[key] }} {{ unit(key) }}</div>
+            </div>
+
+            <div class="text-center">
               <span class="label-maxi">MAX</span>
               <div class="temp-maxi">{{ datav2[2] }} {{ unit(key) }}</div>
             </div>
@@ -59,6 +64,8 @@ export default {
     return {
       dataHW: [],
       dataHWv2: [],
+      refreshTimeout: null,
+      refreshInterval: null,
     };
   },
   async fetch() {
@@ -76,54 +83,99 @@ export default {
         : `/api/savedaily/toto`
     ).then((res) => res.json());
   },
+  mounted() {
+    // Fonction pour calculer le temps en ms avant la prochaine exécution à 6, 11, 16... minutes de l'heure
+    const getDelayToNextUpdate = () => {
+      const now = new Date();
+      const minutes = now.getMinutes();
+      const seconds = now.getSeconds();
+      const milliseconds = now.getMilliseconds();
 
+      // Minutes cibles dans chaque heure où rafraîchir : 6 + 5n (6,11,16,...)
+      // On trouve la prochaine minute cible supérieure aux minutes actuelles
+      const base = 6;
+      const interval = 5;
+      let nextMin = base;
+      while (nextMin <= minutes) {
+        nextMin += interval;
+      }
+      if (nextMin >= 60) nextMin -= 60; // Cas où on passe à l'heure suivante
+
+      // Calcul du délai en ms jusqu'à cette minute cible dans l'heure
+      let target = new Date(now);
+      target.setMinutes(nextMin);
+      target.setSeconds(0);
+      target.setMilliseconds(0);
+
+      // Si le target est dans l'heure suivante, on décale d'une heure
+      if (nextMin <= minutes) {
+        target.setHours(target.getHours() + 1);
+      }
+
+      return target - now;
+    };
+
+    // Premier timeout pour attendre la première exécution au bon moment
+    this.refreshTimeout = setTimeout(() => {
+      this.fetch();
+
+      // Puis intervalle toutes les 5 minutes
+      this.refreshInterval = setInterval(() => {
+        this.fetch();
+      }, 5 * 60 * 1000); // 5 minutes en ms
+
+    }, getDelayToNextUpdate());
+  },
+  beforeDestroy() {
+    // Nettoyer les timers pour éviter fuite mémoire
+    if (this.refreshTimeout) clearTimeout(this.refreshTimeout);
+    if (this.refreshInterval) clearInterval(this.refreshInterval);
+  },
   methods: {
 
-  formatDate(timestamp) {
-    return this.$dayjs(timestamp * 1000).format("DD/MM/YYYY HH:mm");
-  },
+    formatDate(timestamp) {
+      return this.$dayjs(timestamp * 1000).format("DD/MM/YYYY HH:mm");
+    },
 
-  translate(key) {
-    const dictionary = {
-      temp: "Température",
-      humidity: "Humidité",
-      pressure: "Pression atmosphérique",
-      wind_speed: "Vitesse du vent",
-      wind_gust: "Rafales",
-      wind_deg: "Direction du vent",
-      clouds: "Nébulosité",
-    };
-    return dictionary[key] || key;
-  },
+    translate(key) {
+      const dictionary = {
+        temp: "Température",
+        humidity: "Humidité",
+        pressure: "Pression atmosphérique",
+        wind_speed: "Vitesse du vent",
+        wind_gust: "Rafales",
+        wind_deg: "Direction du vent",
+        clouds: "Nébulosité"
+      };
+      return dictionary[key] || key;
+    },
 
-  unit(key) {
-    const units = {
-      temp: "°C",
-      humidity: "%",
-      pressure: "hPa",
-      wind_speed: "m/s",
-      wind_gust: "m/s",
-      wind_deg: "°",
-      clouds: "%",
-    };
-    return units[key] || "";
-  },
+    unit(key) {
+      const units = {
+        temp: "°C",
+        humidity: "%",
+        pressure: "hPa",
+        wind_speed: "km/h",
+        wind_gust: "km/h",
+        wind_deg: "°",
+        clouds: "%"
+      };
+      return units[key] || "";
+    },
 
-  getIcon(key) {
-    const icons = {
-      temp: "fas fa-thermometer-half",
-      humidity: "fas fa-tint",
-      pressure: "fas fa-tachometer-alt",
-      wind_speed: "fas fa-wind",
-      wind_gust: "fas fa-bolt",
-      wind_deg: "fas fa-compass",
-      clouds: "fas fa-cloud",
-    };
-    return icons[key] || "fas fa-circle";
-  },
-
-}
-
+    getIcon(key) {
+      const icons = {
+        temp: "fas fa-thermometer-half",
+        humidity: "fas fa-tint",
+        pressure: "fas fa-tachometer-alt",
+        wind_speed: "fas fa-wind",
+        wind_gust: "fas fa-bolt",
+        wind_deg: "fas fa-compass",
+        clouds: "fas fa-cloud"
+      };
+      return icons[key] || "fas fa-circle";
+    }
+  }
 };
 </script>
 
@@ -139,7 +191,8 @@ export default {
 }
 
 .label-mini,
-.label-maxi {
+.label-maxi,
+.label-now {
   display: inline-block;
   padding: 3px 8px;
   border-radius: 6px;
@@ -156,8 +209,13 @@ export default {
   background-color: #dc3545;
 }
 
+.label-now {
+  background-color: #28a745;
+}
+
 .temp-mini,
-.temp-maxi {
+.temp-maxi,
+.temp-now {
   font-size: 1.75rem;
   font-weight: bold;
   text-align: center;
@@ -169,6 +227,9 @@ export default {
 
 .temp-maxi {
   color: #dc3545;
+}
+.temp-now {
+  color: #28a745;
 }
 
 .margin {

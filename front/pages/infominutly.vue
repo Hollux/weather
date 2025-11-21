@@ -57,7 +57,7 @@ export default {
         "wind_deg",
       ],
       fields: [
-        { key: "dt", sortable: false },
+        { key: "dt", sortable: true },
         { key: "temp", sortable: true },
         { key: "pressure", sortable: true },
         { key: "humidity", sortable: true },
