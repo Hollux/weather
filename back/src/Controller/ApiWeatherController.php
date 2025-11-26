@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Controller;
 
 use Symfony\Component\HttpFoundation\Response;
@@ -16,7 +17,7 @@ use App\Service\WeatherTools;
 class ApiWeatherController extends AbstractController
 {
 
-     /**
+    /**
      * @Route("/api_weather_villes/{mode}", 
      * defaults={"mode": "strict"} ,
      * name="api_weather_villes", 
@@ -32,14 +33,14 @@ class ApiWeatherController extends AbstractController
         $data = json_decode($request->getContent(), true)["data"];
 
         $resp = $weatherTools->GetRespFromData($data);
-        if(isset($resp['error'])) {
+        if (isset($resp['error'])) {
             return $this->json([
-                    "error" => $resp['error']
-                ]);
+                "error" => $resp['error']
+            ]);
         }
 
         $villeTop = $weatherTools->compareWeather($resp, $mode);
-        if($villeTop === null){
+        if ($villeTop === null) {
             return $this->json([
                 "success" => "Les villes sont egales",
             ]);
@@ -48,7 +49,7 @@ class ApiWeatherController extends AbstractController
         return $this->json([
             "success" => $data[$villeTop],
         ]);
-    } 
+    }
 
 
     /**
@@ -59,43 +60,42 @@ class ApiWeatherController extends AbstractController
     public function api_weather_detail($ville, Request $request, WeatherTools $weatherTools)
     {
 
-        if($ville == "taville"){
+        if ($ville == "taville") {
             return $this->json([
-                    "error" => "MAIS NON PUNAISE METS LA VILLE QUE TU VEUX PAS #TAVILLE#"
-                ]);
+                "error" => "MAIS NON PUNAISE METS LA VILLE QUE TU VEUX PAS #TAVILLE#"
+            ]);
         }
 
         //modif version hw only
         $resp = $weatherTools->getAllFromhw();
-        if(isset($resp['error'])) {
+        if (isset($resp['error'])) {
             return $this->json([
-                    "error" => $resp['error']
-                ]);
+                "error" => $resp['error']
+            ]);
         }
 
         return $this->json([
             "success" => $resp,
         ]);
-    } 
+    }
 
-     /**
+    /**
      * @Route("/api_weather_test2", 
      * name="api_weather_test2")
      */
     public function api_weather_test2(WeatherTools $weatherTools)
     {
         $resp = $weatherTools->getTest2();
-        if(isset($resp['error'])) {
+        if (isset($resp['error'])) {
             return $this->json([
-                    "error" => $resp['error']
-                ]);
+                "error" => $resp['error']
+            ]);
         }
 
         return $this->json([
             "success" => $resp,
         ]);
-
-    } 
+    }
 
 
     /**
@@ -116,13 +116,13 @@ class ApiWeatherController extends AbstractController
      */
     public function saveminutly($savkey, WeatherTools $weatherTools): Response
     {
-        
-        if($savkey == $_ENV['savKey']){
+
+        if ($savkey == $_ENV['savKey']) {
             $weatherTools->setMinutelyHW();
 
             return $this->json([
-            "success" => "success",
-        ]);
+                "success" => "success",
+            ]);
         }
 
         return $this->json([
@@ -136,24 +136,24 @@ class ApiWeatherController extends AbstractController
      */
     public function savedaily($savkey, WeatherTools $weatherTools): Response
     {
-        if($savkey == $_ENV["savKey"] || $savkey == "toto2"){
+        if ($savkey == $_ENV["savKey"] || $savkey == "toto2") {
             $resp = $weatherTools->setDailyHW(true);
 
             return $this->json([
                 "success" => $resp,
             ]);
-        } else if($savkey == "toto"){
+        } else if ($savkey == "toto") {
             $resp = $weatherTools->setDailyHW();
 
             return $this->json([
                 "success" => $resp,
             ]);
-        } 
+        }
 
         return $this->json([
             "error" => "error",
         ]);
-    } 
+    }
 
 
     /**
@@ -163,11 +163,11 @@ class ApiWeatherController extends AbstractController
     {
         $data = json_decode($request->getContent(), true)["data"];
         $min = strtotime($data[0]);
-        $max = strtotime($data[1])+86399;
+        $max = strtotime($data[1]) + 86399;
 
-        if($min && $max){
+        if ($min && $max) {
             // limiter l'intervalle à 3 mois (95 jours)
-            if(($max - $min) > 8208000){
+            if (($max - $min) > 8208000) {
                 return $this->json([
                     "error" => "intervalle trop grand, max 3 mois",
                 ]);
@@ -176,7 +176,7 @@ class ApiWeatherController extends AbstractController
             $resp = $weatherTools->getMinutlyWithMinMax($min, $max);
             $arrayResp = [];
             foreach ($resp as $key => $value) {
-               $arrayResp[] = $value->toArray(); 
+                $arrayResp[] = $value->toArray();
             }
 
             return $this->json([
@@ -188,9 +188,5 @@ class ApiWeatherController extends AbstractController
         return $this->json([
             "error" => "no min max",
         ]);
-    } 
-
-
-    
-
-} 
+    }
+}

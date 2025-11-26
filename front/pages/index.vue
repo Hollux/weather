@@ -1,6 +1,5 @@
 <template>
   <b-container class="component py-4">
-
     <div class="text-center mb-4">
       <h1 class="display-4 font-weight-bold">Météo – Horbourg-Wihr</h1>
       <p class="text-muted">Statistiques minimales & maximales</p>
@@ -16,7 +15,6 @@
         class="mb-4"
       >
         <b-card class="shadow-sm border-0 weather-card">
-
           <!-- Titre FR + icône -->
           <div class="text-center mb-3">
             <!-- <i :class="getIcon(key)" class="weather-icon mb-2"></i> -->
@@ -25,7 +23,6 @@
 
           <!-- Mini & maxi -->
           <div class="d-flex justify-content-between align-items-center mb-3">
-
             <div class="text-center">
               <span class="label-mini">MIN</span>
               <div class="temp-mini">{{ datav2[0] }} {{ unit(key) }}</div>
@@ -33,26 +30,26 @@
 
             <div class="text-center">
               <span class="label-now"></span>
-              <div class="temp-now">{{ dataHW.success[key] }} {{ unit(key) }}</div>
+              <div class="temp-now">
+                {{ dataHW.success[key] }} {{ unit(key) }}
+              </div>
             </div>
 
             <div class="text-center">
               <span class="label-maxi">MAX</span>
               <div class="temp-maxi">{{ datav2[2] }} {{ unit(key) }}</div>
             </div>
-
           </div>
 
           <!-- Dates -->
           <p class="text-muted small text-center">
-            Mini le <strong>{{ formatDate(datav2[1]) }}</strong><br />
+            Mini le <strong>{{ formatDate(datav2[1]) }}</strong
+            ><br />
             Maxi le <strong>{{ formatDate(datav2[3]) }}</strong>
           </p>
-
         </b-card>
       </b-col>
     </b-row>
-
   </b-container>
 </template>
 
@@ -69,19 +66,15 @@ export default {
     };
   },
   async fetch() {
-    const baseUrl = process.server ? "http://weather.hollux.fr" : "";
+    const baseUrl = process.env.URL_BACK;
 
     this.dataHW = await fetch(
-      process.server
-        ? `${baseUrl}/api_weather_detail/horbourg-wihr`
-        : `/api/api_weather_detail/horbourg-wihr`
+      `${baseUrl}/api_weather_detail/horbourg-wihr`
     ).then((res) => res.json());
 
-    this.dataHWv2 = await fetch(
-      process.server
-        ? `${baseUrl}/savedaily/toto`
-        : `/api/savedaily/toto`
-    ).then((res) => res.json());
+    this.dataHWv2 = await fetch(`${baseUrl}/savedaily/toto`).then((res) =>
+      res.json()
+    );
   },
   mounted() {
     // Fonction pour calculer le temps en ms avant la prochaine exécution à 6, 11, 16... minutes de l'heure
@@ -116,15 +109,14 @@ export default {
     };
 
     // Premier timeout pour attendre la première exécution au bon moment
-    this.refreshTimeout = setTimeout(() => {
+    /* this.refreshTimeout = setTimeout(() => {
       this.fetch();
 
       // Puis intervalle toutes les 5 minutes
       this.refreshInterval = setInterval(() => {
         this.fetch();
       }, 5 * 60 * 1000); // 5 minutes en ms
-
-    }, getDelayToNextUpdate());
+    }, getDelayToNextUpdate()); */
   },
   beforeDestroy() {
     // Nettoyer les timers pour éviter fuite mémoire
@@ -132,7 +124,6 @@ export default {
     if (this.refreshInterval) clearInterval(this.refreshInterval);
   },
   methods: {
-
     formatDate(timestamp) {
       return this.$dayjs(timestamp * 1000).format("DD/MM/YYYY HH:mm");
     },
@@ -145,7 +136,7 @@ export default {
         wind_speed: "Vitesse du vent",
         wind_gust: "Rafales",
         wind_deg: "Direction du vent",
-        clouds: "Nébulosité"
+        clouds: "Nébulosité",
       };
       return dictionary[key] || key;
     },
@@ -158,7 +149,7 @@ export default {
         wind_speed: "km/h",
         wind_gust: "km/h",
         wind_deg: "°",
-        clouds: "%"
+        clouds: "%",
       };
       return units[key] || "";
     },
@@ -171,11 +162,11 @@ export default {
         wind_speed: "fas fa-wind",
         wind_gust: "fas fa-bolt",
         wind_deg: "fas fa-compass",
-        clouds: "fas fa-cloud"
+        clouds: "fas fa-cloud",
       };
       return icons[key] || "fas fa-circle";
-    }
-  }
+    },
+  },
 };
 </script>
 

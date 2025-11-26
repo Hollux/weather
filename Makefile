@@ -19,38 +19,105 @@ BLUE = \033[0;34m
 NC = \033[0m # No Color
 
 .PHONY: help
-help: ## Affiche cette aide
-	@echo "$(GREEN)Commandes disponibles :$(NC)"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(BLUE)%-20s$(NC) %s\n", $$1, $$2}'
+help: ## Affiche l’aide "soft"
+	@echo "$(GREEN)Commandes disponibles (mode soft) : $(NC)"
+	@grep -E '^[A-Za-z0-9._-]+:.*## \[soft\]' $(MAKEFILE_LIST) \
+	| sort \
+	| awk -F ':.*## \\[soft\\] ' '{ printf "$(BLUE)%-20s$(NC) %s\n", $$1, $$2 }'
+
+
+.PHONY: help-full
+01_help-full: ## [soft] Affiche l’aide complète
+	@echo "$(GREEN)Commandes avancées :$(NC)"
+	@grep -E '^[A-Za-z0-9._-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+	| sort \
+	| sed -E 's/## \[(soft|full)\] /## /' \
+	| awk 'BEGIN {FS = ":.*?## "}; {printf "$(BLUE)%-20s$(NC) %s\n", $$1, $$2}'
+
+
+
+# ======================================
+# Docker automatisation
+# ======================================
+
+.PHONY: docker-dev
+docker-dev: ## Lance l'environnement de développement Docker
+	@echo "$(GREEN)Lancement de l'environnement de développement Docker...$(NC)"
+# Vérifie si le fichier .env existe, sinon le crée à partir de .env.exemple
+	@if [ ! -f .env ]; then \
+		echo "Création du fichier .env à partir de .env.exemple"; \
+		cp .env.exemple .env; \
+		echo "Vous pouvez modifier .env avant de continuer"; \
+		read -p "Appuyez sur Entrée pour continuer..."; \
+	fi
+# .env de back maintenant
+	@if [ ! -f back/.env ]; then \
+		echo "Création du fichier back/.env à partir de back/.env.exemple"; \
+		cp back/.env.exemple back/.env; \
+		echo "Vous pouvez modifier back/.env avant de continuer"; \
+		read -p "Appuyez sur Entrée pour continuer..."; \
+	fi
+# .env de front maintenant
+	@if [ ! -f front/.env ]; then \
+		echo "Création du fichier front/.env à partir de front/.env.exemple"; \
+		cp front/.env.exemple front/.env; \
+		echo "Vous pouvez modifier front/.env avant de continuer"; \
+		read -p "Appuyez sur Entrée pour continuer..."; \
+	fi
+
+	$(DOCKER_COMPOSE) build
+	$(DOCKER_COMPOSE) up -d
+	@echo "Installation des dépendances backend..."
+	$(DOCKER_EXEC) ${SYMFONY_CONTAINER} composer install
+	@echo "Installation des dépendances frontend..."
+	$(DOCKER_EXEC) ${FRONT_CONTAINER} npm install
+
+	# Exécution des migrations Doctrine
+	@echo "Exécution des migrations Doctrine..."
+	$(DOCKER_EXEC) ${SYMFONY_CONTAINER} php bin/console doctrine:migrations:migrate --no-interaction
+
+	# Chargement des fixtures (pas encore en place)
+	#@echo "Chargement des fixtures..."
+	#$(DOCKER_EXEC) ${SYMFONY_CONTAINER} php bin/console doctrine:fixtures:load --no-interaction
+
+	# chargement des anciennes données
+	$(DOCKER_EXEC) ${SYMFONY_CONTAINER} php bin/console app:import-sql old_datas.sql --batch-size=1000
+
+
+
+# /Docker automatisation
+
+
+
 
 # ================================================================
 # DOCKER & INFRASTRUCTURE
 # ================================================================
 
 .PHONY: up
-up: ## Démarre tous les conteneurs Docker
+up: ## [soft] Démarre tous les conteneurs Docker
 	@echo "$(GREEN)Démarrage des conteneurs...$(NC)"
 	$(DOCKER_COMPOSE) up -d
 
 .PHONY: down
-down: ## Arrête tous les conteneurs Docker
+down: ## [soft] Arrête tous les conteneurs Docker
 	@echo "$(RED)Arrêt des conteneurs...$(NC)"
 	$(DOCKER_COMPOSE) down
 
 .PHONY: restart
-restart: down up ## Redémarre tous les conteneurs
+restart: down up ## [soft] Redémarre tous les conteneurs
 
 .PHONY: build
-build: ## Reconstruit tous les conteneurs Docker
+build: ## [soft] Reconstruit tous les conteneurs Docker
 	@echo "$(YELLOW)Reconstruction des conteneurs...$(NC)"
 	$(DOCKER_COMPOSE) build --no-cache
 
 .PHONY: logs
-logs: ## Affiche les logs de tous les conteneurs
+logs: ## [soft] Affiche les logs de tous les conteneurs
 	$(DOCKER_COMPOSE) logs -f
 
 .PHONY: status
-status: ## Affiche le statut des conteneurs
+status: ## [soft] Affiche le statut des conteneurs
 	@echo "$(BLUE)Statut des conteneurs :$(NC)"
 	$(DOCKER_COMPOSE) ps
 
@@ -64,12 +131,12 @@ clean: ## Nettoie les conteneurs, volumes et images inutilisés
 # SYMFONY BACKEND
 # ================================================================
 
-.PHONY: symfony-bash
-sf-bash: ## Accède au bash du conteneur Symfony
+.PHONY: sf-bash
+sf-bash: ## [soft] Accède au bash du conteneur Symfony
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) bash
 
-.PHONY: symfony-console
-symfony-console: ## Accède à la console Symfony (ex: make symfony-console c="debug:router")
+.PHONY: sf-console
+sf-console: ## Accède à la console Symfony (ex: make symfony-console c="debug:router")
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/console $(c)
 
 .PHONY: sf-cache-clear
@@ -192,7 +259,7 @@ db-restore: ## Restaure la base de données (ex: make db-restore file="backup.sq
 # ================================================================
 
 .PHONY: test
-test: ## Lance les tests Symfony (si configurés)
+test: ## [soft] Lance les tests Symfony (si configurés)
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/phpunit
 
 .PHONY: fix-permissions

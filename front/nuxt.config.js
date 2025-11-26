@@ -7,6 +7,9 @@ export default {
     port: 3000, // par défaut: 3000
     host: '0.0.0.0' // par défaut: localhost
   },
+   env: {
+    urlBack: process.env.URL_BACK
+  },
 
   // Global page headers: https://go.nuxtjs.dev/config-head
   head: {
@@ -61,7 +64,7 @@ export default {
   },
   proxy: {
     '/api': {
-      target: 'https://weather.hollux.fr/',
+      target: process.env.URL_BACK+'/',
       pathRewrite: {
         '^/api': ''
       }
