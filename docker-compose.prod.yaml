@@ -1,20 +1,21 @@
 services:
-  front:
-    container_name: ${PROJECT_NAME}_dev_front
+  front_prod:
+    container_name: ${PROJECT_NAME}_prod_front
     build:
       context: ./front
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.prod  # utilisez ce Dockerfile prod multi-stage
+      args:
+        URL_BACK: ${URL_BACK_PROD}
     environment:
-      - NODE_OPTIONS=--openssl-legacy-provider
-      - URL_BACK=${URL_BACK}
+      - URL_BACK=${URL_BACK_PROD}
     ports:
-      - "${FRONT_PORT}:3000"
-    volumes:
-      - ./front:/app/front
-      - /app/front/node_modules
+      - "${FRONT_PORT_PROD}:80"  # Expose Nginx port 80 sur ${FRONT_PORT_PROD}
+    volumes: []  # Pas de montage du dossier source, les fichiers statiques sont dans l'image
 
-  back:
-    container_name: ${PROJECT_NAME}_dev_back
+    
+
+  back_prod:
+    container_name: ${PROJECT_NAME}_prod_back
     build:
       context: ./back
       dockerfile: Dockerfile
@@ -22,10 +23,10 @@ services:
       - ./back:/var/www/html
       - vendor_data:/var/www/html/vendor
     ports:
-      - "${BACK_PORT}:8000"
+      - "${BACK_PORT_PROD}:8000"
     restart: always
     environment:
-      APP_ENV: dev
+      APP_ENV: prod
       DATABASE_URL: ${DATABASE_URL}
       APP_SECRET: ${APP_SECRET}
       weatherApiKey: ${weatherApiKey}
@@ -33,21 +34,28 @@ services:
       savKey: ${savKey}
       CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN}
     depends_on:
-      - db
-      - php-fpm
+      - db_prod
+      - php-fpm_prod
 
-  php-fpm:
-    container_name: ${PROJECT_NAME}_dev_phpfpm
+  php-fpm_prod:
+    container_name: ${PROJECT_NAME}_prod_phpfpm
     build:
       context: ./php-fpm
     volumes:
       - ./back:/var/www/html
       - vendor_data:/var/www/html/vendor
+    environment:
+      APP_ENV: prod
+      DATABASE_URL: ${DATABASE_URL}
+      APP_SECRET: ${APP_SECRET}
+      weatherApiKey: ${weatherApiKey}
+      weatherApiFreeVersion: ${weatherApiFreeVersion}
+      savKey: ${savKey}
     depends_on:
-      - db
+      - db_prod
 
-  db:
-    container_name: ${PROJECT_NAME}_dev_db
+  db_prod:
+    container_name: ${PROJECT_NAME}_prod_db
     image: mysql:5.7
     platform: linux/amd64
     restart: always
@@ -57,33 +65,33 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "${DB_PORT}:3306"
+      - "${DB_PORT_PROD}:3306"
     volumes:
       - db_data:/var/lib/mysql
 
-  phpmyadmin:
-    container_name: ${PROJECT_NAME}_dev_phpmyadmin
+  phpmyadmin_prod:
+    container_name: ${PROJECT_NAME}_prod_phpmyadmin
     image: phpmyadmin/phpmyadmin
     restart: always
     environment:
       PMA_HOST: db
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
-      - "${PHPMYADMIN_PORT}:80"
+      - "${PHPMYADMIN_PORT_PROD}:80"
     depends_on:
-      - db
+      - db_prod
 
-  nginx:
-    container_name: ${PROJECT_NAME}_dev_nginx
+  nginx_prod:
+    container_name: ${PROJECT_NAME}_prod_nginx
     image: nginx:latest
     ports:
-      - "${NGINX_PORT}:80"
+      - "${NGINX_PORT_PROD}:80"
     volumes:
       - ./back:/var/www/html
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
-      - php-fpm
-
+      - php-fpm_prod
+  
 volumes:
   db_data:
   vendor_data:

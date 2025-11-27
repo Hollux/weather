@@ -6,8 +6,8 @@
 
       <b-collapse id="nav-collapse" is-nav>
         <b-navbar-nav>
-          <b-nav-item href="/infominutly">infosMinute</b-nav-item>
-          <b-nav-item href="/graph">Grpah meteo</b-nav-item>
+          <b-nav-item to="/infominutly">infosMinute</b-nav-item>
+          <b-nav-item to="/graph">Grpah meteo</b-nav-item>
         </b-navbar-nav>
 
         <!-- Right aligned nav items -->

@@ -8,7 +8,7 @@ export default {
     host: '0.0.0.0' // par défaut: localhost
   },
    env: {
-    urlBack: process.env.URL_BACK
+    urlBack: process.env.URL_BACK,
   },
 
   // Global page headers: https://go.nuxtjs.dev/config-head
@@ -64,7 +64,7 @@ export default {
   },
   proxy: {
     '/api': {
-      target: process.env.URL_BACK+'/',
+      target: process.env.NUXT_ENV_URL_BACK+'/',
       pathRewrite: {
         '^/api': ''
       }

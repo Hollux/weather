@@ -65,18 +65,43 @@ export default {
       refreshInterval: null,
     };
   },
-  async fetch() {
-    const baseUrl = process.env.URL_BACK;
+  async mounted() {
+    // Ancien Fetch :
+    const baseUrl = process.env.urlBack;
 
-    this.dataHW = await fetch(
-      `${baseUrl}/api_weather_detail/horbourg-wihr`
-    ).then((res) => res.json());
+    try {
+      const res1 = await fetch(`${baseUrl}/api_weather_detail/horbourg-wihr`);
 
-    this.dataHWv2 = await fetch(`${baseUrl}/savedaily/toto`).then((res) =>
-      res.json()
-    );
-  },
-  mounted() {
+      if (!res1.ok) {
+        console.error(
+          "❌ Erreur HTTP (dataHW) :",
+          res1.status,
+          res1.statusText
+        );
+        throw new Error(`Erreur HTTP ${res1.status}`);
+      }
+      this.dataHW = await res1.json();
+    } catch (err) {
+      console.error("🔥 Erreur lors de la récupération de dataHW :", err);
+    }
+
+    try {
+      const res2 = await fetch(`${baseUrl}/savedaily/toto`);
+
+      if (!res2.ok) {
+        console.error(
+          "❌ Erreur HTTP (dataHWv2) :",
+          res2.status,
+          res2.statusText
+        );
+        throw new Error(`Erreur HTTP ${res2.status}`);
+      }
+
+      this.dataHWv2 = await res2.json();
+    } catch (err) {
+      console.error("🔥 Erreur lors de la récupération de dataHWv2 :", err);
+    }
+    // Ancien fetch
     // Fonction pour calculer le temps en ms avant la prochaine exécution à 6, 11, 16... minutes de l'heure
     const getDelayToNextUpdate = () => {
       const now = new Date();

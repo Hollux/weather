@@ -11,6 +11,12 @@ FRONT_CONTAINER = $(PROJECT_NAME)_front
 PHP_FPM_CONTAINER = $(PROJECT_NAME)_phpfpm
 DB_CONTAINER = $(PROJECT_NAME)_db
 
+PROJECT_NAME_PROD = meteo_prod
+SYMFONY_CONTAINER_PROD = $(PROJECT_NAME_PROD)_back
+FRONT_CONTAINER_PROD = $(PROJECT_NAME_PROD)_front
+PHP_FPM_CONTAINER_PROD = $(PROJECT_NAME_PROD)_phpfpm
+DB_CONTAINER_PROD = $(PROJECT_NAME_PROD)_db
+
 # Couleurs pour l'affichage
 RED = \033[0;31m
 GREEN = \033[0;32m
@@ -41,27 +47,13 @@ help: ## Affiche l’aide "soft"
 # ======================================
 
 .PHONY: docker-dev
-docker-dev: ## Lance l'environnement de développement Docker
+docker-dev: ## [soft] Lance l'environnement de développement Docker
 	@echo "$(GREEN)Lancement de l'environnement de développement Docker...$(NC)"
 # Vérifie si le fichier .env existe, sinon le crée à partir de .env.exemple
 	@if [ ! -f .env ]; then \
 		echo "Création du fichier .env à partir de .env.exemple"; \
 		cp .env.exemple .env; \
 		echo "Vous pouvez modifier .env avant de continuer"; \
-		read -p "Appuyez sur Entrée pour continuer..."; \
-	fi
-# .env de back maintenant
-	@if [ ! -f back/.env ]; then \
-		echo "Création du fichier back/.env à partir de back/.env.exemple"; \
-		cp back/.env.exemple back/.env; \
-		echo "Vous pouvez modifier back/.env avant de continuer"; \
-		read -p "Appuyez sur Entrée pour continuer..."; \
-	fi
-# .env de front maintenant
-	@if [ ! -f front/.env ]; then \
-		echo "Création du fichier front/.env à partir de front/.env.exemple"; \
-		cp front/.env.exemple front/.env; \
-		echo "Vous pouvez modifier front/.env avant de continuer"; \
 		read -p "Appuyez sur Entrée pour continuer..."; \
 	fi
 
@@ -81,7 +73,33 @@ docker-dev: ## Lance l'environnement de développement Docker
 	#$(DOCKER_EXEC) ${SYMFONY_CONTAINER} php bin/console doctrine:fixtures:load --no-interaction
 
 	# chargement des anciennes données
-	$(DOCKER_EXEC) ${SYMFONY_CONTAINER} php bin/console app:import-sql old_datas.sql --batch-size=1000
+	$(DOCKER_EXEC) ${SYMFONY_CONTAINER} php bin/console app:import-sql old_datas.sql --batch-size=2000
+
+
+# Docker PROD
+.PHONY: docker-prod
+docker-prod: ## [soft] Lance l'environnement de production Docker
+	@echo "$(GREEN)Lancement de l'environnement de production Docker...$(NC)"
+	@if [ ! -f .env ]; then \
+		echo "Création du fichier .env à partir de .env.exemple"; \
+		cp .env.exemple .env; \
+		echo "Vous pouvez modifier .env avant de continuer"; \
+		read -p "Appuyez sur Entrée pour continuer..."; \
+	fi
+
+	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml build
+
+	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml up -d
+
+	@echo "Installation des dépendances backend (prod)..."
+	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml exec back composer install --no-dev --optimize-autoloader
+	@echo "Warmup cache Symfony prod..."
+	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml exec back php bin/console cache:warmup --env=prod
+
+	@echo "Exécution des migrations Doctrine prod..."
+	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml exec back php bin/console doctrine:migrations:migrate --no-interaction --env=prod
+
+	@echo "Production Docker environment started."
 
 
 
@@ -103,6 +121,11 @@ up: ## [soft] Démarre tous les conteneurs Docker
 down: ## [soft] Arrête tous les conteneurs Docker
 	@echo "$(RED)Arrêt des conteneurs...$(NC)"
 	$(DOCKER_COMPOSE) down
+
+.PHONY: down-prod
+down-prod: ## [soft] Arrête tous les conteneurs Docker en production
+	@echo "$(RED)Arrêt des conteneurs de production...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml down
 
 .PHONY: restart
 restart: down up ## [soft] Redémarre tous les conteneurs

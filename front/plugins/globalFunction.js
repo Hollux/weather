@@ -58,8 +58,12 @@ Vue.prototype.$axiosPost = async function (uri, data) {
 }
 
 Vue.prototype.$axiosPostAndInfos = async function (uri, data) {
+    
+    // Utilise l'URL du back
+    const baseUrl = process.env.urlBack;
+
     try {
-        const serveur = await this.$axios.$post(`/api/` + uri, {
+        const serveur = await this.$axios.$post(`${baseUrl}/${uri}`, {
             data: data
         });
         if (!serveur) {

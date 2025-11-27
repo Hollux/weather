@@ -11,11 +11,13 @@ class WeatherTools
 {
     private $entityManager;
     private $client;
+    /** @var EntityManagerInterface */
+    private $em;
 
-    public function __construct(EntityManagerInterface $entityManager, HttpClientInterface $client)
+    public function __construct(EntityManagerInterface $em, HttpClientInterface $client)
     {
         $this->client = $client;
-        $this->em = $entityManager;
+        $this->em = $em;
     }
 
     public function GetRespFromData($data)
