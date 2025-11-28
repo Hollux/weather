@@ -68,12 +68,13 @@ docker-dev: ## [soft] Lance l'environnement de développement Docker
 	@echo "Exécution des migrations Doctrine..."
 	$(DOCKER_EXEC) ${SYMFONY_CONTAINER} php bin/console doctrine:migrations:migrate --no-interaction
 
-	# Chargement des fixtures (pas encore en place)
-	#@echo "Chargement des fixtures..."
-	#$(DOCKER_EXEC) ${SYMFONY_CONTAINER} php bin/console doctrine:fixtures:load --no-interaction
-
 	# chargement des anciennes données
+	@echo "Importation des anciennes données SQL..."
 	$(DOCKER_EXEC) ${SYMFONY_CONTAINER} php bin/console app:import-sql old_datas.sql --batch-size=2000
+
+	# Chargement des fixtures (pas encore en place)
+	# @echo "Chargement des fixtures..."
+	# $(DOCKER_EXEC) ${SYMFONY_CONTAINER} php bin/console doctrine:fixtures:load --no-interaction
 
 
 # Docker PROD

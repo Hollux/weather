@@ -9,11 +9,6 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-/**
- * php bin/console app:import-sql old_datas.sql --batch-size=1000
- * 
- * Importe un fichier SQL volumineux par batch, ignore les doublons sur ID
- */
 class DatabaseImportCommand extends Command
 {
     protected static $defaultName = 'app:import-sql';
@@ -29,7 +24,7 @@ class DatabaseImportCommand extends Command
     protected function configure()
     {
         $this
-            ->setDescription('Importe un fichier SQL volumineux par batch, ignore les doublons sur ID')
+            ->setDescription('Importe un fichier SQL volumineux par batch, ignore les doublons et ne charge qu’une seule fois.')
             ->addArgument('file', InputArgument::REQUIRED, 'Chemin du fichier SQL à importer')
             ->addOption(
                 'batch-size',
@@ -42,6 +37,18 @@ class DatabaseImportCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $table = "weather_hwminutely";
+
+        // Vérifie si la table contient déjà des données
+        $existingCount = (int) $this->connection->fetchOne("SELECT COUNT(*) FROM $table");
+
+        if ($existingCount > 0) {
+            $output->writeln("<comment>Import ignoré : la table contient déjà $existingCount lignes.</comment>");
+            return Command::SUCCESS;
+        }
+
+        $output->writeln("<info>Table vide → Import SQL nécessaire</info>");
+
         $file = $input->getArgument('file');
         $batchSize = (int)$input->getOption('batch-size');
 
@@ -60,47 +67,57 @@ class DatabaseImportCommand extends Command
         }
 
         $batch = [];
-        $insideInsert = false;
 
         $pdo->beginTransaction();
 
         while (($line = fgets($handle)) !== false) {
             $lineTrim = trim($line);
 
-            // Ignorer lignes vides ou commentaires
-            if ($lineTrim === '' || strpos($lineTrim, '--') === 0 || strpos($lineTrim, '/*') === 0) {
+            // Ignore les commentaires / lignes vides
+            if (
+                $lineTrim === '' ||
+                str_starts_with($lineTrim, '--') ||
+                str_starts_with($lineTrim, '/*')
+            ) {
                 continue;
             }
 
-            // Saute ligne INSERT INTO car on ne veut que les tuples
+            // Ignore la ligne INSERT INTO
             if (stripos($lineTrim, 'insert into') === 0) {
                 continue;
             }
 
-            // Nettoie la ligne (finissant par , ou ;)
+            // Nettoyage
             $cleaned = rtrim($lineTrim, ",;\r\n");
 
             if ($cleaned !== '') {
                 $batch[] = $cleaned;
             }
 
-            // Quand batch atteint la taille ou fin de fichier
-            if (count($batch) >= $batchSize /* ou fin */) {
-                if ($batch) {
-                    $sql = "INSERT IGNORE INTO weather_hwminutely (id, dt, temp, pressure, humidity, uvi, wind_speed, wind_deg) VALUES " .
-                        implode(',', $batch);
-                    $pdo->exec($sql);
-                    $output->writeln("Batch de " . count($batch) . " lignes inséré");
-                    $batch = [];
-                }
+            if (count($batch) >= $batchSize) {
+                $this->insertBatch($pdo, $batch, $output);
+                $batch = [];
             }
         }
 
+        // Dernier batch
+        if (!empty($batch)) {
+            $this->insertBatch($pdo, $batch, $output);
+        }
 
         $pdo->commit();
         fclose($handle);
 
         $output->writeln('<info>Import finalisé avec succès.</info>');
         return Command::SUCCESS;
+    }
+
+    private function insertBatch($pdo, array $batch, OutputInterface $output)
+    {
+        $sql = "INSERT IGNORE INTO weather_hwminutely (id, dt, temp, pressure, humidity, uvi, wind_speed, wind_deg)
+                VALUES " . implode(',', $batch);
+
+        $pdo->exec($sql);
+        $output->writeln("Batch de " . count($batch) . " lignes inséré");
     }
 }
