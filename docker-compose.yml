@@ -43,6 +43,14 @@ services:
     volumes:
       - ./back:/var/www/html
       - vendor_data:/var/www/html/vendor
+    environment:
+      APP_ENV: dev
+      DATABASE_URL: ${DATABASE_URL}
+      APP_SECRET: ${APP_SECRET}
+      weatherApiKey: ${weatherApiKey}
+      weatherApiFreeVersion: ${weatherApiFreeVersion}
+      savKey: ${savKey}
+      CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN}
     depends_on:
       - db
 
