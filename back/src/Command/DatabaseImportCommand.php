@@ -13,7 +13,7 @@ class DatabaseImportCommand extends Command
 {
     protected static $defaultName = 'app:import-sql';
 
-    private $connection;
+    private Connection $connection;
 
     public function __construct(Connection $connection)
     {
@@ -68,26 +68,24 @@ class DatabaseImportCommand extends Command
 
         $batch = [];
 
-        $pdo->beginTransaction();
-
         while (($line = fgets($handle)) !== false) {
             $lineTrim = trim($line);
 
-            // Ignore les commentaires / lignes vides
+            // Ignore les commentaires, lignes vides et COMMIT
             if (
                 $lineTrim === '' ||
                 str_starts_with($lineTrim, '--') ||
-                str_starts_with($lineTrim, '/*')
+                str_starts_with($lineTrim, '/*') ||
+                strtoupper($lineTrim) === 'COMMIT;'
             ) {
                 continue;
             }
 
-            // Ignore la ligne INSERT INTO
+            // Ignore la ligne INSERT INTO du fichier SQL
             if (stripos($lineTrim, 'insert into') === 0) {
                 continue;
             }
 
-            // Nettoyage
             $cleaned = rtrim($lineTrim, ",;\r\n");
 
             if ($cleaned !== '') {
@@ -105,19 +103,27 @@ class DatabaseImportCommand extends Command
             $this->insertBatch($pdo, $batch, $output);
         }
 
-        $pdo->commit();
         fclose($handle);
-
         $output->writeln('<info>Import finalisé avec succès.</info>');
+
         return Command::SUCCESS;
     }
 
-    private function insertBatch($pdo, array $batch, OutputInterface $output)
+    private function insertBatch($pdo, array $batch, OutputInterface $output): void
     {
-        $sql = "INSERT IGNORE INTO weather_hwminutely (id, dt, temp, pressure, humidity, uvi, wind_speed, wind_deg)
+        if (empty($batch)) {
+            return;
+        }
+
+        $sql = "INSERT IGNORE INTO weather_hwminutely 
+                (id, dt, temp, pressure, humidity, uvi, wind_speed, wind_deg, wind_speed_kmh)
                 VALUES " . implode(',', $batch);
 
-        $pdo->exec($sql);
-        $output->writeln("Batch de " . count($batch) . " lignes inséré");
+        try {
+            $pdo->exec($sql);
+            $output->writeln("Batch de " . count($batch) . " lignes inséré");
+        } catch (\PDOException $e) {
+            $output->writeln("<error>Erreur SQL sur le batch : " . $e->getMessage() . "</error>");
+        }
     }
 }
