@@ -1,0 +1,278 @@
+<?php
+
+namespace App\Entity;
+
+use App\Repository\WeatherDailyRepository;
+use Doctrine\ORM\Mapping as ORM;
+
+/**
+ * @ORM\Entity(repositoryClass=WeatherDailyRepository::class)
+ * @ORM\Table(name="weather_daily")
+ */
+class WeatherDaily
+{
+    /**
+     * @ORM\Id
+     * @ORM\GeneratedValue
+     * @ORM\Column(type="integer")
+     */
+    private ?int $id = null;
+
+    /** @ORM\Column(type="integer") */
+    private int $day;
+
+    // Température
+    /** @ORM\Column(type="float") */
+    private float $temp_avg;
+
+    /** @ORM\Column(type="float") */
+    private float $temp_max;
+
+    /** @ORM\Column(type="float") */
+    private float $temp_min;
+
+    /** @ORM\Column(type="float") */
+    private float $temp_0;
+
+    /** @ORM\Column(type="float") */
+    private float $temp_12;
+
+    // Pression
+    /** @ORM\Column(type="float") */
+    private float $pressure_avg;
+
+    /** @ORM\Column(type="float") */
+    private float $pressure_max;
+
+    /** @ORM\Column(type="float") */
+    private float $pressure_min;
+
+    // Humidité
+    /** @ORM\Column(type="float") */
+    private float $humidity_avg;
+
+    /** @ORM\Column(type="float") */
+    private float $humidity_max;
+
+    /** @ORM\Column(type="float") */
+    private float $humidity_min;
+
+    // Indice UV
+    /** @ORM\Column(type="float") */
+    private float $uvi_avg;
+
+    /** @ORM\Column(type="float") */
+    private float $uvi_max;
+
+    // Vent
+    /** @ORM\Column(type="float") */
+    private float $wind_speed_avg;
+
+    /** @ORM\Column(type="float") */
+    private float $wind_speed_max;
+
+    /** @ORM\Column(type="float") */
+    private float $wind_deg_avg;
+
+
+    // ================= Fonctions =================
+
+    public function toArray(): array
+    {
+        return [
+            'dt' => $this->day,
+            'temp' => $this->temp_avg,
+            'temp_max' => $this->temp_max,
+            'temp_min' => $this->temp_min,
+            'temp_0' => $this->temp_0,
+            'temp_12' => $this->temp_12,
+            'pressure' => $this->pressure_avg,
+            'pressure_max' => $this->pressure_max,
+            'pressure_min' => $this->pressure_min,
+            'humidity' => $this->humidity_avg,
+            'humidity_max' => $this->humidity_max,
+            'humidity_min' => $this->humidity_min,
+            'uvi' => $this->uvi_avg,
+            'uvi_max' => $this->uvi_max,
+            'wind_speed' => $this->wind_speed_avg,
+            'wind_speed_max' => $this->wind_speed_max,
+            'wind_deg' => $this->wind_deg_avg,
+        ];
+    }
+
+    // ================= Getters / Setters =================
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+    public function getDay(): int
+    {
+        return $this->day;
+    }
+    public function setDay(int $day): self
+    {
+        $this->day = $day;
+        return $this;
+    }
+
+    public function getTempAvg(): float
+    {
+        return $this->temp_avg;
+    }
+    public function setTempAvg(float $temp_avg): self
+    {
+        $this->temp_avg = $temp_avg;
+        return $this;
+    }
+
+    public function getTempMax(): float
+    {
+        return $this->temp_max;
+    }
+    public function setTempMax(float $temp_max): self
+    {
+        $this->temp_max = $temp_max;
+        return $this;
+    }
+
+    public function getTempMin(): float
+    {
+        return $this->temp_min;
+    }
+    public function setTempMin(float $temp_min): self
+    {
+        $this->temp_min = $temp_min;
+        return $this;
+    }
+
+    public function getTemp0(): float
+    {
+        return $this->temp_0;
+    }
+    public function setTemp0(float $temp_0): self
+    {
+        $this->temp_0 = $temp_0;
+        return $this;
+    }
+
+    public function getTemp12(): float
+    {
+        return $this->temp_12;
+    }
+    public function setTemp12(float $temp_12): self
+    {
+        $this->temp_12 = $temp_12;
+        return $this;
+    }
+
+    public function getPressureAvg(): float
+    {
+        return $this->pressure_avg;
+    }
+    public function setPressureAvg(float $pressure_avg): self
+    {
+        $this->pressure_avg = $pressure_avg;
+        return $this;
+    }
+
+    public function getPressureMax(): float
+    {
+        return $this->pressure_max;
+    }
+    public function setPressureMax(float $pressure_max): self
+    {
+        $this->pressure_max = $pressure_max;
+        return $this;
+    }
+
+    public function getPressureMin(): float
+    {
+        return $this->pressure_min;
+    }
+    public function setPressureMin(float $pressure_min): self
+    {
+        $this->pressure_min = $pressure_min;
+        return $this;
+    }
+
+    public function getHumidityAvg(): float
+    {
+        return $this->humidity_avg;
+    }
+    public function setHumidityAvg(float $humidity_avg): self
+    {
+        $this->humidity_avg = $humidity_avg;
+        return $this;
+    }
+
+    public function getHumidityMax(): float
+    {
+        return $this->humidity_max;
+    }
+    public function setHumidityMax(float $humidity_max): self
+    {
+        $this->humidity_max = $humidity_max;
+        return $this;
+    }
+
+    public function getHumidityMin(): float
+    {
+        return $this->humidity_min;
+    }
+    public function setHumidityMin(float $humidity_min): self
+    {
+        $this->humidity_min = $humidity_min;
+        return $this;
+    }
+
+    public function getUviAvg(): float
+    {
+        return $this->uvi_avg;
+    }
+    public function setUviAvg(float $uvi_avg): self
+    {
+        $this->uvi_avg = $uvi_avg;
+        return $this;
+    }
+
+    public function getUviMax(): float
+    {
+        return $this->uvi_max;
+    }
+    public function setUviMax(float $uvi_max): self
+    {
+        $this->uvi_max = $uvi_max;
+        return $this;
+    }
+
+    public function getWindSpeedAvg(): float
+    {
+        return $this->wind_speed_avg;
+    }
+    public function setWindSpeedAvg(float $wind_speed_avg): self
+    {
+        $this->wind_speed_avg = $wind_speed_avg;
+        return $this;
+    }
+
+    public function getWindSpeedMax(): float
+    {
+        return $this->wind_speed_max;
+    }
+    public function setWindSpeedMax(float $wind_speed_max): self
+    {
+        $this->wind_speed_max = $wind_speed_max;
+        return $this;
+    }
+
+    public function getWindDegAvg(): float
+    {
+        return $this->wind_deg_avg;
+    }
+    public function setWindDegAvg(float $wind_deg_avg): self
+    {
+        $this->wind_deg_avg = $wind_deg_avg;
+        return $this;
+    }
+}

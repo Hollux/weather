@@ -13,6 +13,9 @@ use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Serializer\SerializerInterface;
 use App\Service\WeatherTools;
+use App\Service\WeatherDaily;
+use App\Repository\WeatherHWminutelyRepository;
+use Doctrine\ORM\EntityManagerInterface;
 
 class ApiWeatherController extends AbstractController
 {
@@ -159,19 +162,21 @@ class ApiWeatherController extends AbstractController
     /**
      * @Route("/getminutly")
      */
-    public function getminutly(WeatherTools $weatherTools, Request $request): Response
+    public function getminutly(WeatherTools $weatherTools, WeatherDaily $weatherDaily, Request $request): Response
     {
         $data = json_decode($request->getContent(), true)["data"];
         $min = strtotime($data[0]);
         $max = strtotime($data[1]) + 86399;
 
-        if ($min && $max) {
-            // limiter l'intervalle à 3 mois (95 jours)
-            if (($max - $min) > 8208000) {
-                return $this->json([
-                    "error" => "intervalle trop grand, max 3 mois",
-                ]);
-            }
+        // pas de dates min max
+        if (!$min || !$max) {
+            return $this->json([
+                "error" => "no min max",
+            ]);
+        }
+
+        // SI on dépasse les 2 semaines il faut les infos daily sinon minutly
+        if (($max - $min) < 1209600) {
 
             $resp = $weatherTools->getMinutlyWithMinMax($min, $max);
             $arrayResp = [];
@@ -183,10 +188,57 @@ class ApiWeatherController extends AbstractController
                 "success" => "success",
                 "infos" => $arrayResp
             ]);
+        } else {
+
+            $resp = $weatherDaily->getDailyWithMinMax($min, $max);
+            $arrayResp = [];
+            foreach ($resp as $key => $value) {
+                $arrayResp[] = $value->toArray();
+            }
+
+            return $this->json([
+                "success" => "success",
+                "infos" => $arrayResp
+            ]);
+        }
+    }
+
+    /**
+     * @Route("/generateWeatherDaily", name="generateWeatherDaily")
+     * 
+     * Fonction de génération des données de sauvegarde quotidienne
+     * Lis les données journaliere et ajoute les jours manquants en fonction des informations de hwminutely
+     */
+    public function generateWeatherDaily(WeatherDaily $weatherDaily, WeatherHWminutelyRepository $repoMinutely, EntityManagerInterface $em)
+    {
+        $days = $repoMinutely->findDaysNotInDaily();
+
+        $count = 0;
+
+        foreach ($days as $day) {
+
+            $rows = $repoMinutely->findDayData($day);
+
+            if (count($rows) === 0) {
+                continue;
+            }
+
+            $stats = $weatherDaily->computeDayStats($rows);
+
+            $weatherDaily->createWeatherDaily($day, $stats, $em);
+
+            $count++;
+
+            // Pour éviter d’exploser la RAM
+            if ($count % 10 === 0) {
+                $em->flush();
+                $em->clear();
+            }
         }
 
-        return $this->json([
-            "error" => "no min max",
-        ]);
+        $em->flush();
+        $em->clear();
+
+        return new Response("Daily OK : $count jours générés");
     }
 }

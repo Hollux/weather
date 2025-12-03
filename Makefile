@@ -1,21 +1,20 @@
 # Makefile pour projet Genshin (Symfony + Nuxt.js + Docker)
 # ================================================================
 
-# Variables
+PROJECT_NAME = meteo
+
 DOCKER_COMPOSE = docker-compose
 DOCKER_EXEC = docker exec -it
 
-PROJECT_NAME = meteo_dev
-SYMFONY_CONTAINER = $(PROJECT_NAME)_back
-FRONT_CONTAINER = $(PROJECT_NAME)_front
-PHP_FPM_CONTAINER = $(PROJECT_NAME)_phpfpm
-DB_CONTAINER = $(PROJECT_NAME)_db
+SYMFONY_CONTAINER = $(PROJECT_NAME)_dev_back
+FRONT_CONTAINER = $(PROJECT_NAME)_dev_front
+PHP_FPM_CONTAINER = $(PROJECT_NAME)_dev_phpfpm
+DB_CONTAINER = $(PROJECT_NAME)_dev_db
 
-PROJECT_NAME_PROD = meteo_prod
-SYMFONY_CONTAINER_PROD = $(PROJECT_NAME_PROD)_back
-FRONT_CONTAINER_PROD = $(PROJECT_NAME_PROD)_front
-PHP_FPM_CONTAINER_PROD = $(PROJECT_NAME_PROD)_phpfpm
-DB_CONTAINER_PROD = $(PROJECT_NAME_PROD)_db
+SYMFONY_CONTAINER_PROD = $(PROJECT_NAME)_prod_back
+FRONT_CONTAINER_PROD = $(PROJECT_NAME)_prod_front
+PHP_FPM_CONTAINER_PROD = $(PROJECT_NAME)_prod_phpfpm
+DB_CONTAINER_PROD = $(PROJECT_NAME)_prod_db
 
 # Couleurs pour l'affichage
 RED = \033[0;31m
@@ -29,11 +28,28 @@ help: ## Affiche l’aide "soft"
 	@echo "$(GREEN)Commandes disponibles (mode soft) : $(NC)"
 	@grep -E '^[A-Za-z0-9._-]+:.*## \[soft\]' $(MAKEFILE_LIST) \
 	| sort \
-	| awk -F ':.*## \\[soft\\] ' '{ printf "$(BLUE)%-20s$(NC) %s\n", $$1, $$2 }'
+	| awk -F ':.*## \\[soft\\] ' '{ gsub(/\[(DEV|PROD)\]/,"", $$2); printf "$(BLUE)%-20s$(NC) %s\n", $$1, $$2 }'
+
+# Commande par défaut
+.DEFAULT_GOAL := help
+
+.PHONY: 01_help-dev
+01_help-dev: ## [soft] Affiche uniquement les commandes de développement
+	@echo "$(GREEN)Commandes disponibles en DÉVELOPPEMENT :$(NC)"
+	@grep -E '^[A-Za-z0-9._-]+:.*## \[DEV\]' $(MAKEFILE_LIST) \
+	| sort \
+	| awk -F ':.*## \\[DEV\\] ' '{ printf "$(BLUE)%-25s$(NC) %s\n", $$1, $$2 }'
+
+.PHONY: 02_help-prod
+02_help-prod: ## [soft] Affiche uniquement les commandes de production
+	@echo "$(GREEN)Commandes disponibles en PRODUCTION :$(NC)"
+	@grep -E '^[A-Za-z0-9._-]+:.*## \[PROD\]' $(MAKEFILE_LIST) \
+	| sort \
+	| awk -F ':.*## \\[PROD\\] ' '{ printf "$(BLUE)%-25s$(NC) %s\n", $$1, $$2 }'
 
 
-.PHONY: help-full
-01_help-full: ## [soft] Affiche l’aide complète
+.PHONY: 03_help-full
+03_help-full: ## [soft] Affiche l’aide complète
 	@echo "$(GREEN)Commandes avancées :$(NC)"
 	@grep -E '^[A-Za-z0-9._-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 	| sort \
@@ -41,13 +57,23 @@ help: ## Affiche l’aide "soft"
 	| awk 'BEGIN {FS = ":.*?## "}; {printf "$(BLUE)%-20s$(NC) %s\n", $$1, $$2}'
 
 
+## Raccourci pour l’aide complète
+.PHONY: help-dev
+help-dev: 01_help-dev ## Affiche l’aide dev
+
+.PHONY: help-prod
+help-prod: 02_help-prod ## Affiche l’aide prod
+
+.PHONY: help-full
+help-full: 03_help-full ## Affiche l’aide complète
+
 
 # ======================================
 # Docker automatisation
 # ======================================
 
 .PHONY: docker-dev
-docker-dev: ## [soft] Lance l'environnement de développement Docker
+docker-dev: ## [soft] [DEV] Lance l'environnement de développement Docker
 	@echo "$(GREEN)Lancement de l'environnement de développement Docker...$(NC)"
 # Vérifie si le fichier .env existe, sinon le crée à partir de .env.exemple
 	@if [ ! -f .env ]; then \
@@ -64,13 +90,18 @@ docker-dev: ## [soft] Lance l'environnement de développement Docker
 	@echo "Installation des dépendances frontend..."
 	$(DOCKER_EXEC) ${FRONT_CONTAINER} npm install
 
+	# Copie des vendors du conteneur vers le dossier local
+	@echo "$(GREEN)Copie des vendors du conteneur vers le dossier local...$(NC)"
+	@mkdir -p ./back/vendor
+	docker cp $(SYMFONY_CONTAINER):/var/www/html/vendor ./back/vendor
+
 	# Exécution des migrations Doctrine
 	@echo "Exécution des migrations Doctrine..."
 	$(DOCKER_EXEC) ${SYMFONY_CONTAINER} php bin/console doctrine:migrations:migrate --no-interaction
 
 	# chargement des anciennes données
 	@echo "Importation des anciennes données SQL..."
-	$(DOCKER_EXEC) ${SYMFONY_CONTAINER} php bin/console app:import-sql old_datas.sql --batch-size=2000
+	$(DOCKER_EXEC) ${SYMFONY_CONTAINER} php bin/console app:import-sql old_datas.sql --batch-size=4000
 
 	# Chargement des fixtures (pas encore en place)
 	# @echo "Chargement des fixtures..."
@@ -79,7 +110,7 @@ docker-dev: ## [soft] Lance l'environnement de développement Docker
 
 # Docker PROD
 .PHONY: docker-prod
-docker-prod: ## [soft] Lance l'environnement de production Docker
+docker-prod: ## [soft] [PROD] Lance l'environnement de production Docker
 	@echo "$(GREEN)Lancement de l'environnement de production Docker...$(NC)"
 	@if [ ! -f .env ]; then \
 		echo "Création du fichier .env à partir de .env.exemple"; \
@@ -93,12 +124,18 @@ docker-prod: ## [soft] Lance l'environnement de production Docker
 	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml up -d
 
 	@echo "Installation des dépendances backend (prod)..."
-	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml exec back composer install --no-dev --optimize-autoloader
+	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml exec back_prod sh -c "wait-for-it db_prod:3306 -- composer install --no-dev --optimize-autoloader"
+
 	@echo "Warmup cache Symfony prod..."
-	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml exec back php bin/console cache:warmup --env=prod
+	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml exec back_prod sh -c "wait-for-it db_prod:3306 -- php bin/console cache:warmup --env=prod"
 
 	@echo "Exécution des migrations Doctrine prod..."
-	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml exec back php bin/console doctrine:migrations:migrate --no-interaction --env=prod
+	#$(DOCKER_COMPOSE) -f docker-compose.prod.yaml exec back_prod sh -c "wait-for-it db_prod:3306 -- php bin/console doctrine:migrations:migrate --no-interaction --env=prod"
+
+	# chargement des anciennes données
+	@echo "Importation des anciennes données SQL..."
+	$(DOCKER_EXEC) ${SYMFONY_CONTAINER_PROD} php bin/console app:import-sql old_datas.sql --batch-size=4000
+
 
 	@echo "Production Docker environment started."
 
@@ -114,36 +151,58 @@ docker-prod: ## [soft] Lance l'environnement de production Docker
 # ================================================================
 
 .PHONY: up
-up: ## [soft] Démarre tous les conteneurs Docker
+up: ## [soft] [DEV] Démarre tous les conteneurs Docker
 	@echo "$(GREEN)Démarrage des conteneurs...$(NC)"
 	$(DOCKER_COMPOSE) up -d
 
+.PHONY: up-prod
+up-prod: ## [PROD] Démarre tous les conteneurs Docker en production
+	@echo "$(GREEN)Démarrage des conteneurs de production...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml up -d
+
 .PHONY: down
-down: ## [soft] Arrête tous les conteneurs Docker
+down: ## [soft] [DEV] Arrête tous les conteneurs Docker
 	@echo "$(RED)Arrêt des conteneurs...$(NC)"
 	$(DOCKER_COMPOSE) down
 
 .PHONY: down-prod
-down-prod: ## [soft] Arrête tous les conteneurs Docker en production
+down-prod: ## [PROD] Arrête tous les conteneurs Docker en production
 	@echo "$(RED)Arrêt des conteneurs de production...$(NC)"
 	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml down
 
 .PHONY: restart
-restart: down up ## [soft] Redémarre tous les conteneurs
+restart: down up ## [soft] [DEV] Redémarre tous les conteneurs
+
+.PHONY: restart-prod
+restart-prod: down-prod up-prod ## [PROD] Redémarre tous les conteneurs
 
 .PHONY: build
-build: ## [soft] Reconstruit tous les conteneurs Docker
+build: ## [soft] [DEV] Reconstruit tous les conteneurs Docker
 	@echo "$(YELLOW)Reconstruction des conteneurs...$(NC)"
 	$(DOCKER_COMPOSE) build --no-cache
 
+.PHONY: build-prod
+build-prod: ## [PROD] Reconstruit tous les conteneurs Docker en production
+	@echo "$(YELLOW)Reconstruction des conteneurs de production...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml build --no-cache
+
 .PHONY: logs
-logs: ## [soft] Affiche les logs de tous les conteneurs
+logs: ## [soft] [DEV] Affiche les logs de tous les conteneurs
 	$(DOCKER_COMPOSE) logs -f
 
+.PHONY: logs-prod
+logs-prod: ## [PROD] Affiche les logs de tous les conteneurs en production
+	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml logs -f
+
 .PHONY: status
-status: ## [soft] Affiche le statut des conteneurs
+status: ## [soft] [DEV] Affiche le statut des conteneurs
 	@echo "$(BLUE)Statut des conteneurs :$(NC)"
 	$(DOCKER_COMPOSE) ps
+
+.PHONY: status-prod
+status-prod: ## [PROD] Affiche le statut des conteneurs en production
+	@echo "$(BLUE)Statut des conteneurs de production :$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml ps
 
 .PHONY: clean
 clean: ## Nettoie les conteneurs, volumes et images inutilisés
@@ -156,144 +215,258 @@ clean: ## Nettoie les conteneurs, volumes et images inutilisés
 # ================================================================
 
 .PHONY: sf-bash
-sf-bash: ## [soft] Accède au bash du conteneur Symfony
+sf-bash: ## [soft] [DEV] Accède au bash du conteneur Symfony
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) bash
 
+.PHONY: sf-bash-prod
+sf-bash-prod: ## [PROD] Accède au bash du conteneur Symfony de prod
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) bash
+
 .PHONY: sf-console
-sf-console: ## Accède à la console Symfony (ex: make symfony-console c="debug:router")
+sf-console: ## [DEV] Accède à la console Symfony (ex: make symfony-console c="debug:router")
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/console $(c)
 
+.PHONY: sf-console-prod
+sf-console-prod: ## [PROD] Accède à la console Symfony de prod (ex: make symfony-console-prod c="debug:router")
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) php bin/console $(c) --env=prod
+
 .PHONY: sf-cache-clear
-sf-cache-clear: ## Vide le cache Symfony
+sf-cache-clear: ## [DEV] Vide le cache Symfony
 	@echo "$(YELLOW)Vidage du cache Symfony...$(NC)"
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/console cache:clear
 
+.PHONY: sf-cache-clear-prod
+sf-cache-clear-prod: ## [PROD] Vide le cache Symfony en production
+	@echo "$(YELLOW)Vidage du cache Symfony (prod)...$(NC)"
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) php bin/console cache:clear --env=prod
+
 .PHONY: sf-composer-install
-sf-composer-install: ## Installe les dépendances Composer
+sf-composer-install: ## [DEV] Installe les dépendances Composer
 	@echo "$(BLUE)Installation des dépendances Composer...$(NC)"
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) composer install
 
+.PHONY: sf-composer-install-prod
+sf-composer-install-prod: ## [PROD] Installe les dépendances Composer en production
+	@echo "$(BLUE)Installation des dépendances Composer (prod)...$(NC)"
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) composer install --no-dev --optimize-autoloader
+
 .PHONY: sf-composer-update
-sf-composer-update: ## Met à jour les dépendances Composer
+sf-composer-update: ## [DEV] Met à jour les dépendances Composer
 	@echo "$(BLUE)Mise à jour des dépendances Composer...$(NC)"
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) composer update
 
+.PHONY: sf-composer-update-prod
+sf-composer-update-prod: ## [PROD] Met à jour les dépendances Composer en production
+	@echo "$(BLUE)Mise à jour des dépendances Composer (prod)...$(NC)"
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) composer update --no-dev --optimize-autoloader
+
 .PHONY: sf-migration-make
-sf-migration-make: ## Crée une nouvelle migration (ex: make sf-migration-make name="AddUserTable")
+sf-migration-make: ## [DEV] Crée une nouvelle migration (ex: make sf-migration-make name="AddUserTable")
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/console make:migration $(name)
 
+.PHONY: sf-migration-make-prod
+sf-migration-make-prod: ## [PROD] Crée une nouvelle migration en prod (ex: make sf-migration-make-prod name="AddUserTable")
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) php bin/console make:migration $(name)
+
 .PHONY: sf-migration-migrate
-sf-migration-migrate: ## Exécute les migrations
+sf-migration-migrate: ## [DEV] Exécute les migrations
 	@echo "$(BLUE)Exécution des migrations...$(NC)"
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/console doctrine:migrations:migrate --no-interaction
 
+.PHONY: sf-migration-migrate-prod
+sf-migration-migrate-prod: ## [PROD] Exécute les migrations en prod
+	@echo "$(BLUE)Exécution des migrations (prod)...$(NC)"
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) php bin/console doctrine:migrations:migrate --no-interaction --env=prod
+
 .PHONY: sf-migration-rollback
-sf-migration-rollback: ## Rollback de la dernière migration
+sf-migration-rollback: ## [DEV] Rollback de la dernière migration
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/console doctrine:migrations:migrate prev --no-interaction
 
+.PHONY: sf-migration-rollback-prod
+sf-migration-rollback-prod: ## [PROD] Rollback de la dernière migration en prod
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) php bin/console doctrine:migrations:migrate prev --no-interaction --env=prod
+
 .PHONY: sf-database-create
-sf-database-create: ## Crée la base de données
+sf-database-create: ## [DEV] Crée la base de données
 	@echo "$(BLUE)Création de la base de données...$(NC)"
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/console doctrine:database:create --if-not-exists
 
+.PHONY: sf-database-create-prod
+sf-database-create-prod: ## [PROD] Crée la base de données en prod
+	@echo "$(BLUE)Création de la base de données (prod)...$(NC)"
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) php bin/console doctrine:database:create --if-not-exists --env=prod
+
 .PHONY: sf-database-drop
-sf-database-drop: ## Supprime la base de données
+sf-database-drop: ## [DEV] Supprime la base de données
 	@echo "$(RED)Suppression de la base de données...$(NC)"
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/console doctrine:database:drop --force
 
+.PHONY: sf-database-drop-prod
+sf-database-drop-prod: ## [PROD] Supprime la base de données en prod
+	@echo "$(RED)Suppression de la base de données (prod)...$(NC)"
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) php bin/console doctrine:database:drop --force --env=prod
+
 .PHONY: sf-fixtures
-sf-fixtures: ## Charge les fixtures (si disponibles)
+sf-fixtures: ## [DEV] Charge les fixtures (si disponibles)
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/console doctrine:fixtures:load --no-interaction
 
+.PHONY: sf-fixtures-prod
+sf-fixtures-prod: ## [PROD] Charge les fixtures en prod (si disponible)
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) php bin/console doctrine:fixtures:load --no-interaction --env=prod
+
 .PHONY: sf-entity-make
-sf-entity-make: ## Crée une nouvelle entité (ex: make sf-entity-make name="User")
+sf-entity-make: ## [DEV] Crée une nouvelle entité (ex: make sf-entity-make name="User")
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/console make:entity $(name)
 
+.PHONY: sf-entity-make-prod
+sf-entity-make-prod: ## [PROD] Crée une nouvelle entité en prod (ex: make sf-entity-make-prod name="User")
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) php bin/console make:entity $(name)
+
 .PHONY: sf-controller-make
-sf-controller-make: ## Crée un nouveau contrôleur (ex: make sf-controller-make name="UserController")
+sf-controller-make: ## [DEV] Crée un nouveau contrôleur (ex: make sf-controller-make name="UserController")
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/console make:controller $(name)
 
+.PHONY: sf-controller-make-prod
+sf-controller-make-prod: ## [PROD] Crée un nouveau contrôleur en prod (ex: make sf-controller-make-prod name="UserController")
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) php bin/console make:controller $(name)
+
 .PHONY: sf-permissions
-sf-permissions: ## Corrige les permissions Symfony
+sf-permissions: ## [DEV] Corrige les permissions Symfony
 	@echo "$(YELLOW)Correction des permissions...$(NC)"
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) chown -R www-data:www-data /var/www/html/var
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) chmod -R 755 /var/www/html/var
 
+.PHONY: sf-permissions-prod
+sf-permissions-prod: ## [PROD] Corrige les permissions Symfony en prod
+	@echo "$(YELLOW)Correction des permissions (prod)...$(NC)"
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) chown -R www-data:www-data /var/www/html/var
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) chmod -R 755 /var/www/html/var
+
 # SFONY USER MANAGEMENT
 .PHONY: sf-create-user
-sf-create-user: ## Crée un nouvel utilisateur (ex: make sf-create-user email="
+sf-create-user: ## [DEV] Crée un nouvel utilisateur (ex: make sf-create-user email="
 	@echo "$(YELLOW) Création d'un nouvel utilisateur...$(NC)"
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/console app:create-user
+
+.PHONY: sf-create-user-prod
+sf-create-user-prod: ## [PROD] Crée un nouvel utilisateur en prod
+	@echo "$(YELLOW)Création d'un nouvel utilisateur (prod)...$(NC)"
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) php bin/console app:create-user --env=prod
 
 # ================================================================
 # FRONTEND NUXT.JS
 # ================================================================
 
 .PHONY: front-bash
-front-bash: ## Accède au bash du conteneur Frontend
+front-bash: ## [DEV] Accède au bash du conteneur Frontend
 	$(DOCKER_EXEC) $(FRONT_CONTAINER) bash
 
+.PHONY: front-bash-prod
+front-bash-prod: ## [PROD] Accède au bash du conteneur Frontend (prod)
+	$(DOCKER_EXEC) $(FRONT_CONTAINER_PROD) bash
+
 .PHONY: front-npm-install
-front-npm-install: ## Installe les dépendances npm
+front-npm-install: ## [DEV] Installe les dépendances npm
 	@echo "$(BLUE)Installation des dépendances npm...$(NC)"
 	$(DOCKER_EXEC) $(FRONT_CONTAINER) npm install
 
+.PHONY: front-npm-install-prod
+front-npm-install-prod: ## [PROD] Installe les dépendances npm en prod
+	@echo "$(BLUE)Installation des dépendances npm (prod)...$(NC)"
+	$(DOCKER_EXEC) $(FRONT_CONTAINER_PROD) npm install
+
 .PHONY: front-npm-update
-front-npm-update: ## Met à jour les dépendances npm
+front-npm-update: ## [DEV] Met à jour les dépendances npm
 	@echo "$(BLUE)Mise à jour des dépendances npm...$(NC)"
 	$(DOCKER_EXEC) $(FRONT_CONTAINER) npm update
 
+.PHONY: front-npm-update-prod
+front-npm-update-prod: ## [PROD] Met à jour les dépendances npm en prod
+	@echo "$(BLUE)Mise à jour des dépendances npm (prod)...$(NC)"
+	$(DOCKER_EXEC) $(FRONT_CONTAINER_PROD) npm update
+
 .PHONY: front-dev
-front-dev: ## Lance le serveur de développement Nuxt
+front-dev: ## [DEV] Lance le serveur de développement Nuxt
 	$(DOCKER_EXEC) $(FRONT_CONTAINER) npm run dev
 
 .PHONY: front-build
-front-build: ## Build le frontend pour la production
+front-build: ## [DEV] Build le frontend pour la production
 	@echo "$(BLUE)Build du frontend...$(NC)"
 	$(DOCKER_EXEC) $(FRONT_CONTAINER) npm run build
 
+.PHONY: front-build-prod
+front-build-prod: ## [PROD] Build le frontend pour la production (prod)
+	@echo "$(BLUE)Build du frontend (prod)...$(NC)"
+	$(DOCKER_EXEC) $(FRONT_CONTAINER_PROD) npm run build
+
 .PHONY: front-lint
-front-lint: ## Lance le linter sur le frontend (si configuré)
+front-lint: ## [DEV] Lance le linter sur le frontend (si configuré)
 	$(DOCKER_EXEC) $(FRONT_CONTAINER) npm run lint
+
+.PHONY: front-lint-prod
+front-lint-prod: ## [PROD] Lance le linter sur le frontend en prod (si configuré)
+	$(DOCKER_EXEC) $(FRONT_CONTAINER_PROD) npm run lint
 
 # ================================================================
 # BASE DE DONNÉES
 # ================================================================
 
 .PHONY: db-bash
-db-bash: ## Accède au bash du conteneur MySQL
+db-bash: ## [DEV] Accède au bash du conteneur MySQL
 	$(DOCKER_EXEC) $(DB_CONTAINER) bash
 
+.PHONY: db-bash-prod
+db-bash-prod: ## [PROD] Accède au bash du conteneur MySQL (prod)
+	$(DOCKER_EXEC) $(DB_CONTAINER_PROD) bash
+
 .PHONY: db-mysql
-db-mysql: ## Accède à MySQL en ligne de commande
+db-mysql: ## [DEV] Accède à MySQL en ligne de commande
 	$(DOCKER_EXEC) $(DB_CONTAINER) mysql -u root -p
 
+.PHONY: db-mysql-prod
+db-mysql-prod: ## [PROD] Accède à MySQL en ligne de commande (prod)
+	$(DOCKER_EXEC) $(DB_CONTAINER_PROD) mysql -u root -p
+
 .PHONY: db-dump
-db-dump: ## Sauvegarde la base de données (ex: make db-dump file="backup.sql")
+db-dump: ## [DEV] Sauvegarde la base de données (ex: make db-dump file="backup.sql")
 	@echo "$(BLUE)Sauvegarde de la base de données...$(NC)"
 	$(DOCKER_EXEC) $(DB_CONTAINER) mysqldump -u root -p --all-databases > $(file)
 
+.PHONY: db-dump-prod
+db-dump-prod: ## [PROD] Sauvegarde la base de données en prod (ex: make db-dump-prod file="backup.sql")
+	@echo "$(BLUE)Sauvegarde de la base de données (prod)...$(NC)"
+	$(DOCKER_EXEC) $(DB_CONTAINER_PROD) mysqldump -u root -p --all-databases > $(file)
+
 .PHONY: db-restore
-db-restore: ## Restaure la base de données (ex: make db-restore file="backup.sql")
+db-restore: ## [DEV] Restaure la base de données (ex: make db-restore file="backup.sql")
 	@echo "$(BLUE)Restauration de la base de données...$(NC)"
 	$(DOCKER_EXEC) -i $(DB_CONTAINER) mysql -u root -p < $(file)
+
+.PHONY: db-restore-prod
+db-restore-prod: ## [PROD] Restaure la base de données en prod (ex: make db-restore-prod file="backup.sql")
+	@echo "$(BLUE)Restauration de la base de données (prod)...$(NC)"
+	$(DOCKER_EXEC) -i $(DB_CONTAINER_PROD) mysql -u root -p < $(file)
 
 # ================================================================
 # DÉVELOPPEMENT & TESTS
 # ================================================================
 
 .PHONY: test
-test: ## [soft] Lance les tests Symfony (si configurés)
+test: ## [soft] [DEV] Lance les tests Symfony (si configurés)
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/phpunit
 
+.PHONY: test-prod
+test-prod: ## [PROD] Lance les tests Symfony en prod (si configurés)
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) php bin/phpunit
+
 .PHONY: fix-permissions
-fix-permissions: ## Corrige les permissions des fichiers
+fix-permissions: ## [DEV] Corrige les permissions des fichiers
 	@echo "$(YELLOW)Correction des permissions...$(NC)"
 	sudo chown -R $(USER):$(USER) .
 	sudo chmod -R 755 .
 
 .PHONY: reset-project
-reset-project: ## Remet à zéro le projet (ATTENTION: supprime les données)
+reset-project: ## [DEV] Remet à zéro le projet (ATTENTION: supprime les données)
 	@echo "$(RED)Remise à zéro du projet...$(NC)"
 	@read -p "Êtes-vous sûr ? [y/N] " -n 1 -r; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
@@ -307,7 +480,7 @@ reset-project: ## Remet à zéro le projet (ATTENTION: supprime les données)
 	fi
 
 .PHONY: init-project
-init-project: ## Initialise le projet pour la première fois
+init-project: ## [DEV] Initialise le projet pour la première fois
 	@echo "$(GREEN)Initialisation du projet...$(NC)"
 	make build
 	make up
@@ -327,28 +500,32 @@ init-project: ## Initialise le projet pour la première fois
 # ================================================================
 
 .PHONY: phpfpm-bash
-phpfpm-bash: ## Accède au bash du conteneur PHP-FPM
+phpfpm-bash: ## [DEV] Accède au bash du conteneur PHP-FPM
 	$(DOCKER_EXEC) $(PHP_FPM_CONTAINER) bash
+
+.PHONY: phpfpm-bash-prod
+phpfpm-bash-prod: ## [PROD] Accède au bash du conteneur PHP-FPM (prod)
+	$(DOCKER_EXEC) $(PHP_FPM_CONTAINER_PROD) bash
 
 # ================================================================
 # MONITORING & DEBUG
 # ================================================================
 
 .PHONY: logs-symfony
-logs-symfony: ## Affiche les logs du conteneur Symfony
+logs-symfony: ## [DEV] Affiche les logs du conteneur Symfony
 	$(DOCKER_COMPOSE) logs -f back
 
 .PHONY: logs-front
-logs-front: ## Affiche les logs du conteneur Frontend
+logs-front: ## [DEV] Affiche les logs du conteneur Frontend
 	$(DOCKER_COMPOSE) logs -f front
 
 .PHONY: logs-db
-logs-db: ## Affiche les logs du conteneur MySQL
+logs-db: ## [DEV] Affiche les logs du conteneur MySQL
 	$(DOCKER_COMPOSE) logs -f db
 
 .PHONY: info
 info: ## Affiche les informations du projet
-	@echo "$(GREEN)=== Informations du projet Genshin ===$(NC)"
+	@echo "$(GREEN)=== Informations du projet Meteo ===$(NC)"
 	@echo "$(BLUE)Frontend (Nuxt.js):$(NC) http://localhost:3000"
 	@echo "$(BLUE)Backend (Symfony):$(NC) http://localhost:8000"
 	@echo "$(BLUE)PhpMyAdmin:$(NC) http://localhost:8080"
@@ -357,14 +534,7 @@ info: ## Affiche les informations du projet
 	@echo "$(YELLOW)Conteneurs actifs :$(NC)"
 	@$(DOCKER_COMPOSE) ps
 
-# Commande par défaut
-.DEFAULT_GOAL := help
-
 # ===============================================================
 # Déploiement du front en prod sur un serveur OVH via lftp
 # ===============================================================
-.PHONY: deploy
-deploy: ## Déploie le front et le back en production sur le serveur OVH
-	@echo "$(GREEN)Déploiement du front et du back en prod sur un serveur OVH via lftp...$(NC)"
-	./scripts/front_deploy.sh
-	@echo "$(GREEN)Déploiement terminé avec succès.$(NC)"
+

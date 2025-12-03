@@ -20,7 +20,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./back:/var/www/html
-      - vendor_data:/var/www/html/vendor
+      - ./back/vendor:/var/www/html/vendor      # ← vendors visibles côté Mac
     ports:
       - "${BACK_PORT}:8000"
     restart: always
@@ -42,7 +42,7 @@ services:
       context: ./php-fpm
     volumes:
       - ./back:/var/www/html
-      - vendor_data:/var/www/html/vendor
+      - ./back/vendor:/var/www/html/vendor      # ← même vendors que le back
     environment:
       APP_ENV: dev
       DATABASE_URL: ${DATABASE_URL}
@@ -94,4 +94,3 @@ services:
 
 volumes:
   db_data:
-  vendor_data:

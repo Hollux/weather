@@ -30,8 +30,41 @@ class WeatherHWminutelyRepository extends ServiceEntityRepository
             ->orderBy('w.dt', 'ASC')
             ->getQuery()
             ->getResult()
-            ;
+        ;
     }
+
+    public function findDaysNotInDaily(): array
+    {
+        $conn = $this->getEntityManager()->getConnection();
+
+        $sql = "
+            SELECT DISTINCT DATE(FROM_UNIXTIME(dt)) AS day
+            FROM weather_hwminutely
+            WHERE DATE(FROM_UNIXTIME(dt)) NOT IN (
+                SELECT day FROM weather_daily
+            )
+            ORDER BY day ASC
+        ";
+
+        return $conn->executeQuery($sql)->fetchFirstColumn();
+    }
+
+
+    public function findDayData(string $day): array
+    {
+        $conn = $this->getEntityManager()->getConnection();
+
+        $sql = "
+            SELECT *
+            FROM weather_hwminutely
+            WHERE DATE(FROM_UNIXTIME(dt)) = :day
+            ORDER BY dt ASC
+        ";
+
+        return $conn->executeQuery($sql, ['day' => $day])->fetchAllAssociative();
+    }
+
+
 
 
     // /**
