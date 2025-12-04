@@ -119,7 +119,6 @@ class ApiWeatherController extends AbstractController
      */
     public function saveminutly($savkey, WeatherTools $weatherTools): Response
     {
-
         if ($savkey == $_ENV['savKey']) {
             $weatherTools->setMinutelyHW();
 

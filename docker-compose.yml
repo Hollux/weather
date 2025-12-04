@@ -19,6 +19,7 @@ services:
       context: ./back
       dockerfile: Dockerfile
     volumes:
+      - ./datas:/app/datas
       - ./back:/var/www/html
       - ./back/vendor:/var/www/html/vendor      # ← vendors visibles côté Mac
     ports:

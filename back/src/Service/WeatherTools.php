@@ -337,8 +337,6 @@ class WeatherTools
 
         $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
 
-        //dd($weatherUrl, $weatherArray);
-
         if ($weatherArray) {
             //save.
             $save = new WeatherHWminutely;

@@ -11,6 +11,29 @@ use Doctrine\ORM\Mapping as ORM;
  */
 class WeatherDaily
 {
+
+    public function __construct()
+    {
+        // Initialisation des propriétés avec des valeurs par défaut
+        $this->temp_0 = 0.0;
+        $this->temp_12 = 0.0;
+        $this->temp_avg = 0.0;
+        $this->temp_max = 0.0;
+        $this->temp_min = 0.0;
+        $this->pressure_avg = 0.0;
+        $this->pressure_max = 0.0;
+        $this->pressure_min = 0.0;
+        $this->humidity_avg = 0.0;
+        $this->humidity_max = 0.0;
+        $this->humidity_min = 0.0;
+        $this->uvi_avg = 0.0;
+        $this->uvi_max = 0.0;
+        $this->wind_speed_avg = 0.0;
+        $this->wind_speed_max = 0.0;
+        $this->wind_deg_avg = 0.0;
+    }
+
+
     /**
      * @ORM\Id
      * @ORM\GeneratedValue
@@ -97,6 +120,29 @@ class WeatherDaily
             'wind_speed' => $this->wind_speed_avg,
             'wind_speed_max' => $this->wind_speed_max,
             'wind_deg' => $this->wind_deg_avg,
+        ];
+    }
+
+    public function toArrayForImport(): array
+    {
+        return [
+            'day' => $this->day,
+            'temp_avg' => $this->temp_avg,
+            'temp_max' => $this->temp_max,
+            'temp_min' => $this->temp_min,
+            'temp_0' => $this->temp_0,
+            'temp_12' => $this->temp_12,
+            'pressure_avg' => $this->pressure_avg,
+            'pressure_max' => $this->pressure_max,
+            'pressure_min' => $this->pressure_min,
+            'humidity_avg' => $this->humidity_avg,
+            'humidity_max' => $this->humidity_max,
+            'humidity_min' => $this->humidity_min,
+            'uvi_avg' => $this->uvi_avg,
+            'uvi_max' => $this->uvi_max,
+            'wind_speed_avg' => $this->wind_speed_avg,
+            'wind_speed_max' => $this->wind_speed_max,
+            'wind_deg_avg' => $this->wind_deg_avg,
         ];
     }
 
