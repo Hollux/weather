@@ -3,16 +3,14 @@ services:
     container_name: ${PROJECT_NAME}_prod_front
     build:
       context: ./front
-      dockerfile: Dockerfile.prod  # utilisez ce Dockerfile prod multi-stage
+      dockerfile: Dockerfile.prod # utilisez ce Dockerfile prod multi-stage
       args:
         URL_BACK: ${URL_BACK_PROD}
     environment:
       - URL_BACK=${URL_BACK_PROD}
     ports:
-      - "${FRONT_PORT_PROD}:80"  # Expose Nginx port 80 sur ${FRONT_PORT_PROD}
-    volumes: []  # Pas de montage du dossier source, les fichiers statiques sont dans l'image
-
-    
+      - "${FRONT_PORT_PROD}:80" # Expose Nginx port 80 sur ${FRONT_PORT_PROD}
+    volumes: [] # Pas de montage du dossier source, les fichiers statiques sont dans l'image
 
   back_prod:
     container_name: ${PROJECT_NAME}_prod_back
@@ -27,7 +25,7 @@ services:
     restart: always
     environment:
       APP_ENV: prod
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL_PROD}
       APP_SECRET: ${APP_SECRET}
       weatherApiKey: ${weatherApiKey}
       weatherApiFreeVersion: ${weatherApiFreeVersion}
@@ -46,7 +44,7 @@ services:
       - vendor_data:/var/www/html/vendor
     environment:
       APP_ENV: prod
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL_PROD}
       APP_SECRET: ${APP_SECRET}
       weatherApiKey: ${weatherApiKey}
       weatherApiFreeVersion: ${weatherApiFreeVersion}
@@ -71,10 +69,10 @@ services:
 
   phpmyadmin_prod:
     container_name: ${PROJECT_NAME}_prod_phpmyadmin
-    image: phpmyadmin/phpmyadmin
+    image: phpmyadmin/phpmyadmin:5.2.1
     restart: always
     environment:
-      PMA_HOST: db
+      PMA_HOST: db_prod
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
       - "${PHPMYADMIN_PORT_PROD}:80"
@@ -91,7 +89,7 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - php-fpm_prod
-  
+
 volumes:
   db_data:
   vendor_data:

@@ -91,9 +91,9 @@ docker-dev: ## [soft] [DEV] Lance l'environnement de développement Docker
 	$(DOCKER_EXEC) ${FRONT_CONTAINER} npm install
 
 	# Copie des vendors du conteneur vers le dossier local
-	@echo "$(GREEN)Copie des vendors du conteneur vers le dossier local...$(NC)"
-	@mkdir -p ./back/vendor
-	docker cp $(SYMFONY_CONTAINER):/var/www/html/vendor ./back/vendor
+	# @echo "$(GREEN)Copie des vendors du conteneur vers le dossier local...$(NC)"
+	# @mkdir -p ./back/vendor
+	# docker cp $(SYMFONY_CONTAINER):/var/www/html/vendor ./back/vendor
 
 	# Exécution des migrations Doctrine
 	@echo "Exécution des migrations Doctrine..."
@@ -124,13 +124,15 @@ docker-prod: ## [soft] [PROD] Lance l'environnement de production Docker
 	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml up -d
 
 	@echo "Installation des dépendances backend (prod)..."
-	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml exec back_prod sh -c "wait-for-it db_prod:3306 -- composer install --no-dev --optimize-autoloader"
+	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml exec back_prod composer install --no-dev --optimize-autoloader
+
 
 	@echo "Warmup cache Symfony prod..."
-	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml exec back_prod sh -c "wait-for-it db_prod:3306 -- php bin/console cache:warmup --env=prod"
+	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml exec back_prod php bin/console cache:warmup --env=prod
+
 
 	@echo "Exécution des migrations Doctrine prod..."
-	#$(DOCKER_COMPOSE) -f docker-compose.prod.yaml exec back_prod sh -c "wait-for-it db_prod:3306 -- php bin/console doctrine:migrations:migrate --no-interaction --env=prod"
+	$(DOCKER_EXEC) ${SYMFONY_CONTAINER_PROD} php bin/console doctrine:migrations:migrate --no-interaction --env=prod
 
 	# chargement des anciennes données
 	@echo "Importation des anciennes données SQL..."
