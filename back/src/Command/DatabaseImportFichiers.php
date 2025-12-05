@@ -131,6 +131,20 @@ class DatabaseImportFichiers extends Command
             $dayStats[$day]['temp_max'] = max($dayStats[$day]['temp_max'], (float)$temp);
             $dayStats[$day]['temp_min'] = min($dayStats[$day]['temp_min'], (float)$temp);
 
+            // Mettre à jour les pressions max/min
+            $dayStats[$day]['pressure_max'] = max($dayStats[$day]['pressure_max'] ?? 0, (float)$pressure);
+            $dayStats[$day]['pressure_min'] = min($dayStats[$day]['pressure_min'] ?? PHP_FLOAT_MAX, (float)$pressure);
+
+            // Humidité max/min
+            $dayStats[$day]['humidity_max'] = max($dayStats[$day]['humidity_max'] ?? 0, (float)$humidity);
+            $dayStats[$day]['humidity_min'] = min($dayStats[$day]['humidity_min'] ?? PHP_FLOAT_MAX, (float)$humidity);
+
+            // Mettre à jour les vitesses de vent max
+            $dayStats[$day]['wind_speed_max'] = max($dayStats[$day]['wind_speed_max'] ?? 0, (float)$windSpeed);
+
+            //UVI max
+            $dayStats[$day]['uvi_max'] = max($dayStats[$day]['uvi_max'] ?? 0, (float)$luminosity);
+
             $dayStats[$day]['count']++;
 
             // Si on atteint la taille du batch, on insère les données
@@ -158,6 +172,14 @@ class DatabaseImportFichiers extends Command
             $weather->setPressureAvg(round($stats['pressure_sum'] / $stats['count'], 2));
             $weather->setWindSpeedAvg(round($stats['wind_speed_sum'] / $stats['count'], 2));
             $weather->setWindDegAvg(round($stats['wind_deg_sum'] / $stats['count'], 2));
+            // ajouter les min/max
+            $weather->setPressureMax($stats['pressure_max']);
+            $weather->setPressureMin($stats['pressure_min']);
+            $weather->setHumidityMax($stats['humidity_max']);
+            $weather->setHumidityMin($stats['humidity_min']);
+            $weather->setWindSpeedMax($stats['wind_speed_max']);
+            $weather->setUviAvg(round($stats['uvi'] / $stats['count'], 2));
+            $weather->setUviMax($stats['uvi_max']);
 
             // Remplir le tableau de données avec la bonne clé pour correspondre à `toArray()`
             $weatherData = $weather->toArrayForImport();
