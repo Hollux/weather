@@ -20,15 +20,16 @@
     <b-container fluid>
       <template v-if="charDataF.temp">
         <GChart
-          type="AreaChart"
+          type="LineChart"
           :data="charDataF.temp.data"
           :options="charDataF.temp.options"
+          :style="{ height: '60vh', minHeight: '300px' }"
         />
       </template>
 
       <template v-if="charDataF.pressure">
         <GChart
-          type="AreaChart"
+          type="LineChart"
           :data="charDataF.pressure.data"
           :options="charDataF.pressure.options"
         />
@@ -36,7 +37,7 @@
 
       <template v-if="charDataF.humidity">
         <GChart
-          type="AreaChart"
+          type="LineChart"
           :data="charDataF.humidity.data"
           :options="charDataF.humidity.options"
         />
@@ -44,7 +45,7 @@
 
       <template v-if="charDataF.uvi">
         <GChart
-          type="AreaChart"
+          type="LineChart"
           :data="charDataF.uvi.data"
           :options="charDataF.uvi.options"
         />
@@ -52,7 +53,7 @@
 
       <template v-if="charDataF.wind_speed">
         <GChart
-          type="AreaChart"
+          type="LineChart"
           :data="charDataF.wind_speed.data"
           :options="charDataF.wind_speed.options"
         />
@@ -72,7 +73,7 @@ export default {
 
       globalOptions: {
         legend: { position: "top" },
-        hAxis: { format: "dd MMM HH:mm" },
+        hAxis: { format: "dd/MM/yyyy" },
         vAxis: { viewWindowMode: "pretty" },
         explorer: {
           actions: ["dragToZoom", "rightClickToReset"],
@@ -81,15 +82,15 @@ export default {
       },
       globalOptionsTemps: {
         legend: { position: "top" },
-        hAxis: { format: "dd MMM HH:mm" },
+        hAxis: { format: "dd/MM/yyyy" },
         vAxis: {
           viewWindowMode: "pretty", // Pour une vue plus jolie et ajustée
           minValue: -20, // Plage de température minimale
-          maxValue: 60, // Plage de température maximale
+          maxValue: 40, // Plage de température maximale
           format: "## °C", // Format d'affichage pour les températures, ici en ajoutant "°C"
           title: "Température (°C)", // Titre de l'axe Y
           gridlines: {
-            count: 5, // Nombre de lignes de la grille, tu peux ajuster ça pour mieux visualiser
+            count: 2, // Nombre de lignes de la grille, tu peux ajuster ça pour mieux visualiser
           },
         },
         explorer: {
@@ -224,7 +225,7 @@ function dataFormat(data, globalOptions, colorMap, globalOptionsTemps) {
 
     // Options avec spéciales pour la température
     let pre_options = globalOptions;
-    if (mainKey === "temp") {
+    if (mainKey === "temp_old") {
       pre_options = Object.assign({}, globalOptionsTemps);
     } else {
       pre_options = Object.assign({}, globalOptions);
@@ -236,9 +237,8 @@ function dataFormat(data, globalOptions, colorMap, globalOptionsTemps) {
       // rendre les séries visibles/invisibles selon besoin géré par absence de colonne
       series: {}, // pas nécessaire ici mais left for future customizations
       legend: { position: "top" },
-      hAxis: { format: "dd MMM HH:mm" },
+      hAxis: { format: "dd/MM/yyyy" },
       curveType: "function",
-      pointSize: 2,
     });
 
     return { data: table, options };
