@@ -1,63 +1,64 @@
 <template>
-  <b-container class="component">
-    <b-form inline>
-      <label for="example-datepicker">Choisissez une plage : </label>
-      <b-form-datepicker
-        id="min"
-        v-model="min"
-        class="mb-2"
-      ></b-form-datepicker>
-      <b-form-datepicker
-        id="max"
-        v-model="max"
-        class="mb-2"
-      ></b-form-datepicker>
-      <b-button variant="primary" @click="getMinutly()">Valider</b-button>
-    </b-form>
+  <div>
+    <b-container class="component">
+      <b-form inline>
+        <label for="example-datepicker">Choisissez une plage : </label>
+        <b-form-datepicker
+          id="min"
+          v-model="min"
+          class="mb-2"
+        ></b-form-datepicker>
+        <b-form-datepicker
+          id="max"
+          v-model="max"
+          class="mb-2"
+        ></b-form-datepicker>
+        <b-button variant="primary" @click="getMinutly()">Valider</b-button>
+      </b-form>
+    </b-container>
 
-    <!-- debug -->
-    <!-- {{ charDataF }} -->
+    <b-container fluid>
+      <template v-if="charDataF.temp">
+        <GChart
+          type="AreaChart"
+          :data="charDataF.temp.data"
+          :options="charDataF.temp.options"
+        />
+      </template>
 
-    <template v-if="charDataF.temp">
-      <GChart
-        type="AreaChart"
-        :data="charDataF.temp.data"
-        :options="charDataF.temp.options"
-      />
-    </template>
+      <template v-if="charDataF.pressure">
+        <GChart
+          type="AreaChart"
+          :data="charDataF.pressure.data"
+          :options="charDataF.pressure.options"
+        />
+      </template>
 
-    <template v-if="charDataF.pressure">
-      <GChart
-        type="AreaChart"
-        :data="charDataF.pressure.data"
-        :options="charDataF.pressure.options"
-      />
-    </template>
+      <template v-if="charDataF.humidity">
+        <GChart
+          type="AreaChart"
+          :data="charDataF.humidity.data"
+          :options="charDataF.humidity.options"
+        />
+      </template>
 
-    <template v-if="charDataF.humidity">
-      <GChart
-        type="AreaChart"
-        :data="charDataF.humidity.data"
-        :options="charDataF.humidity.options"
-      />
-    </template>
+      <template v-if="charDataF.uvi">
+        <GChart
+          type="AreaChart"
+          :data="charDataF.uvi.data"
+          :options="charDataF.uvi.options"
+        />
+      </template>
 
-    <template v-if="charDataF.uvi">
-      <GChart
-        type="AreaChart"
-        :data="charDataF.uvi.data"
-        :options="charDataF.uvi.options"
-      />
-    </template>
-
-    <template v-if="charDataF.wind_speed">
-      <GChart
-        type="AreaChart"
-        :data="charDataF.wind_speed.data"
-        :options="charDataF.wind_speed.options"
-      />
-    </template>
-  </b-container>
+      <template v-if="charDataF.wind_speed">
+        <GChart
+          type="AreaChart"
+          :data="charDataF.wind_speed.data"
+          :options="charDataF.wind_speed.options"
+        />
+      </template>
+    </b-container>
+  </div>
 </template>
 
 <script>
@@ -67,11 +68,30 @@ export default {
     return {
       charDataF: [],
       min: "",
-      max: "",
+      max: new Date().toISOString().split("T")[0], // Formater la date au format 'YYYY-MM-DD',
+
       globalOptions: {
         legend: { position: "top" },
         hAxis: { format: "dd MMM HH:mm" },
         vAxis: { viewWindowMode: "pretty" },
+        explorer: {
+          actions: ["dragToZoom", "rightClickToReset"],
+          axis: "horizontal",
+        },
+      },
+      globalOptionsTemps: {
+        legend: { position: "top" },
+        hAxis: { format: "dd MMM HH:mm" },
+        vAxis: {
+          viewWindowMode: "pretty", // Pour une vue plus jolie et ajustée
+          minValue: -20, // Plage de température minimale
+          maxValue: 60, // Plage de température maximale
+          format: "## °C", // Format d'affichage pour les températures, ici en ajoutant "°C"
+          title: "Température (°C)", // Titre de l'axe Y
+          gridlines: {
+            count: 5, // Nombre de lignes de la grille, tu peux ajuster ça pour mieux visualiser
+          },
+        },
         explorer: {
           actions: ["dragToZoom", "rightClickToReset"],
           axis: "horizontal",
@@ -95,7 +115,8 @@ export default {
           this.charDataF = dataFormat(
             value[1],
             this.globalOptions,
-            this.colorMap
+            this.colorMap,
+            this.globalOptionsTemps
           );
         } else {
           this.charDataF = [];
@@ -118,7 +139,7 @@ export default {
  *   wind_speed: { ... }
  * }
  */
-function dataFormat(data, globalOptions, colorMap) {
+function dataFormat(data, globalOptions, colorMap, globalOptionsTemps) {
   if (!data || !Array.isArray(data) || data.length === 0) return {};
 
   // détecter presence des min/max
@@ -201,7 +222,15 @@ function dataFormat(data, globalOptions, colorMap) {
     // assemble data table: header + rows
     const table = [header, ...rows];
 
-    const options = Object.assign({}, globalOptions, {
+    // Options avec spéciales pour la température
+    let pre_options = globalOptions;
+    if (mainKey === "temp") {
+      pre_options = Object.assign({}, globalOptionsTemps);
+    } else {
+      pre_options = Object.assign({}, globalOptions);
+    }
+
+    const options = Object.assign({}, pre_options, {
       title,
       colors,
       // rendre les séries visibles/invisibles selon besoin géré par absence de colonne
