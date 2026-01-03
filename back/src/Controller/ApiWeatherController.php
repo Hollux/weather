@@ -240,4 +240,38 @@ class ApiWeatherController extends AbstractController
 
         return new Response("Daily OK : $count jours générés");
     }
+
+    /**
+     * @Route("/getCompare", name="getCompare")
+     */
+    public function getCompare(WeatherTools $weatherTools, Request $request): Response
+    {
+        $data = json_decode($request->getContent(), true)["data"];
+        $years = $data['years'];
+        $year1 = $years[0] ?? null;
+        $year2 = $years[1] ?? null;
+        $year3 = $years[2] ?? null;
+
+        //dd('getCompare controller :', $years);
+
+        // nullable interdit
+        if (!$year1 || !$year2 || !$year3) {
+            return $this->json([
+                "error" => "Il doit manquer une année",
+            ]);
+        }
+
+
+        $resp = $weatherTools->getCompare($year1, $year2, $year3);
+        if (isset($resp['error'])) {
+            return $this->json([
+                "error" => $resp['error']
+            ]);
+        }
+
+        return $this->json([
+            "success" => "success",
+            "infos" => $resp
+        ]);
+    }
 }

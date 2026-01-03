@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\WeatherDaily;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\WeatherVille;
@@ -330,10 +331,10 @@ class WeatherTools
 
     public function setMinutelyHW()
     {
-
         //https://api.openweathermap.org/data/2.5/weather?q=London&appid=23e67e8262fb30f212afb7102fc4dbe0
         $weatherUrl = "https://api.openweathermap.org/data/3.0/onecall?lat=48.081&lon=7.4022&exclude=minutely,hourly,daily&appid=" .
             $_ENV['weatherApiKey'] . "&lang=fr&units=metric";
+
 
         $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
 
@@ -412,5 +413,13 @@ class WeatherTools
         $result = $this->em->getRepository(WeatherHWminutely::class)->getAllInDtMinMax($min, $max);
 
         return $result;
+    }
+
+    // Tableau de comparaison annuelle, trois années.
+    public function getCompare($year1, $year2, $year3)
+    {
+        // Récupération des données journalières pour les années demandées (en un seul appel bdd).
+        $years = array_filter([$year1, $year2, $year3]);
+        return $this->em->getRepository(WeatherDaily::class)->getAllInYears($years);
     }
 }
