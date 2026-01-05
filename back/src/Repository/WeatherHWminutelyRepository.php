@@ -38,12 +38,13 @@ class WeatherHWminutelyRepository extends ServiceEntityRepository
         $conn = $this->getEntityManager()->getConnection();
 
         $sql = "
-            SELECT DISTINCT DATE(FROM_UNIXTIME(dt)) AS day
-            FROM weather_hwminutely
-            WHERE DATE(FROM_UNIXTIME(dt)) NOT IN (
-                SELECT day FROM weather_daily
+            SELECT DISTINCT DATE(FROM_UNIXTIME(h.dt)) AS day
+            FROM weather_hwminutely h
+            WHERE DATE(FROM_UNIXTIME(h.dt)) NOT IN (
+                SELECT DISTINCT DATE(FROM_UNIXTIME(d.day))
+                FROM weather_daily d
             )
-            ORDER BY day ASC
+            ORDER BY day ASC;
         ";
 
         return $conn->executeQuery($sql)->fetchFirstColumn();

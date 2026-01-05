@@ -62,6 +62,12 @@ class DatabaseImportFichiers extends Command
 
         // Traiter chaque fichier CSV
         foreach ($csvFiles as $filePath) {
+            // si le nom du fichier contient 2025 on l'importe avec la nouvelle méthode
+            if (strpos(basename($filePath), '2025') !== false) {
+                $this->importCsvFile2025($filePath, $batchSize, $output);
+                continue;
+            }
+            continue;
             $this->importCsvFile($filePath, $batchSize, $output);
         }
 
@@ -191,6 +197,161 @@ class DatabaseImportFichiers extends Command
         $output->writeln("<info>Import terminé pour le fichier: $filePath</info>");
     }
 
+    private function importCsvFile2025(string $filePath, int $batchSize, OutputInterface $output): void
+    {
+        // Nouvelle méthode d'import pour les fichiers 2025 car OREGON n'a pas les mêmes colonnes
+
+        $output->writeln("<info>Import 2025 commencé pour le fichier: $filePath</info>");
+
+
+        $handle = fopen($filePath, 'r');
+        if (!$handle) {
+            $output->writeln("<error>Impossible d'ouvrir le fichier: $filePath</error>");
+            return;
+        }
+
+        $batch = [];
+        $dayStats = [];
+        $countLines = 0;
+
+        // Lire les lignes du fichier CSV
+        while (($data = fgetcsv($handle, 0, ",")) !== false) {
+            // Sauter les lignes 2 premières lignes d'en-tête
+            if ($data[0] === 'Date' || $data[0] === '') {
+                continue;
+            }
+
+            // Nettoyer les espaces avant et après
+            $dateStr = trim($data[0]) . ' ' . trim($data[1]); // On assemble les 2 parties en une seule chaîne
+            // Convertir la chaîne en objet DateTime avec le bon format
+            $date = \DateTime::createFromFormat('d/m/Y H:i', $dateStr);
+            $timestamp = $date ? $date->getTimestamp() : null;
+            $temp = str_replace(',', '.', $data[3]);
+            $humidity = str_replace(',', '.', $data[6]);
+            $pressure = str_replace(',', '.', $data[18]);
+            $windSpeed = str_replace(',', '.', $data[9]);
+            $windDeg = str_replace(',', '.', $data[8]);
+            $luminosity = 0; // Pas de luminosité dans ce format
+
+            // Convertir les valeurs
+            $day = date('Y-m-d', $timestamp); // On récupère juste le jour (année-mois-jour)
+
+            // Ajouter la donnée à la statistique journalière
+            if (!isset($dayStats[$day])) {
+                $dayStats[$day] = [
+                    'dt' => $timestamp,
+                    'temp_sum' => 0,
+                    'temp_max' => (float)$temp,
+                    'temp_min' => (float)$temp,
+                    'humidity_sum' => 0,
+                    'pressure_sum' => 0,
+                    'wind_speed_sum' => 0,
+                    'wind_deg_sum' => 0,
+                    'uvi' => 0,
+                    'count' => 0,
+                ];
+            }
+
+            // Ajouter les autres statistiques pour le jour
+            $dayStats[$day]['dt'] = $timestamp;
+            $dayStats[$day]['temp_sum'] += (float)$temp;
+            $dayStats[$day]['humidity_sum'] += (float)$humidity;
+            $dayStats[$day]['pressure_sum'] += (float)$pressure;
+            $dayStats[$day]['wind_speed_sum'] += (float)$windSpeed;
+            $dayStats[$day]['wind_deg_sum'] += (float)$windDeg;
+            $dayStats[$day]['uvi'] += (float)$luminosity;
+
+            // Mettre à jour les max/min pour la température
+            $dayStats[$day]['temp_max'] = max($dayStats[$day]['temp_max'], (float)$temp);
+            $dayStats[$day]['temp_min'] = min($dayStats[$day]['temp_min'], (float)$temp);
+
+            // Mettre à jour les pressions max/min
+            $dayStats[$day]['pressure_max'] = max($dayStats[$day]['pressure_max'] ?? 0, (float)$pressure);
+            $dayStats[$day]['pressure_min'] = min($dayStats[$day]['pressure_min'] ?? PHP_FLOAT_MAX, (float)$pressure);
+
+            // Humidité max/min
+            $dayStats[$day]['humidity_max'] = max($dayStats[$day]['humidity_max'] ?? 0, (float)$humidity);
+            $dayStats[$day]['humidity_min'] = min($dayStats[$day]['humidity_min'] ?? PHP_FLOAT_MAX, (float)$humidity);
+
+            // Mettre à jour les vitesses de vent max
+            $dayStats[$day]['wind_speed_max'] = max($dayStats[$day]['wind_speed_max'] ?? 0, (float)$windSpeed);
+
+            //UVI max
+            $dayStats[$day]['uvi_max'] = 0; // Pas de luminosité dans ce format
+
+            $dayStats[$day]['count']++;
+
+            // Afficher la date format d/m/Y H:i et les valeurs pour debug
+            //$output->writeln("Processing line: " . $date->format('d/m/Y H:i') . " | Temp: $temp | temp_max: " . $dayStats[$day]['temp_max'] . " | temp_min: " . $dayStats[$day]['temp_min']);
+
+            $batch[] = $this->writeSQLLine([
+                'day' => $timestamp,
+                'temp' => (float)$temp,
+                'pressure' => (float)$pressure,
+                'humidity' => (float)$humidity,
+                'wind_speed' => (float)$windSpeed,
+                'wind_deg' => (float)$windDeg,
+            ]);
+
+            // Si on atteint la taille du batch, on insère les données
+            if (count($batch) >= $batchSize) {
+                $this->insertBatch($batch, $output);
+                $batch = []; // Réinitialiser le batch
+            }
+        }
+
+        // Traiter le dernier batch
+        if (count($batch) > 0) {
+            $this->insertBatch($batch, $output);
+        }
+
+        fclose($handle);
+
+        // Ajouter les données journalières à la base de données
+        foreach ($dayStats as $day => $stats) {
+            // afficher stats
+            $weather = new WeatherDaily();
+            $weather->setDay((int)$stats['dt']);
+            $weather->setTempAvg(round($stats['temp_sum'] / $stats['count'], 2));
+            $weather->setTempMax($stats['temp_max']);
+            $weather->setTempMin($stats['temp_min']);
+            $weather->setHumidityAvg(round($stats['humidity_sum'] / $stats['count'], 2));
+            $weather->setPressureAvg(round($stats['pressure_sum'] / $stats['count'], 2));
+            $weather->setWindSpeedAvg(round($stats['wind_speed_sum'] / $stats['count'], 2));
+            $weather->setWindDegAvg(round($stats['wind_deg_sum'] / $stats['count'], 2));
+            // ajouter les min/max
+            $weather->setPressureMax($stats['pressure_max']);
+            $weather->setPressureMin($stats['pressure_min']);
+            $weather->setHumidityMax($stats['humidity_max']);
+            $weather->setHumidityMin($stats['humidity_min']);
+            $weather->setWindSpeedMax($stats['wind_speed_max']);
+            $weather->setUviAvg(round($stats['uvi'] / $stats['count'], 2));
+            $weather->setUviMax($stats['uvi_max']);
+
+            // Remplir le tableau de données avec la bonne clé pour correspondre à `toArray()`
+            $weatherData = $weather->toArrayForImport();
+
+            // Insertion dans la table weather_daily avec les bonnes colonnes
+            $this->connection->insert('weather_daily', $weatherData);
+        }
+
+        $output->writeln("<info>Import terminé pour le fichier: $filePath</info>");
+    }
+
+    // fonction pour passer d'un tableau de donnée à une chaîne de valeur pour SQL
+    private function writeSQLLine(array $datas): string
+    {
+        $batch = "(";
+        $batch .= $datas['day'] . ",";
+        $batch .= $datas['temp'] . ",";
+        $batch .= $datas['pressure'] . ",";
+        $batch .= $datas['humidity'] . ",";
+        $batch .= $datas['wind_speed'] . ",";
+        $batch .= $datas['wind_deg'];
+
+        return $batch . ")";
+    }
+
     private function insertBatch(array $batch, OutputInterface $output): void
     {
         if (empty($batch)) {
@@ -199,8 +360,8 @@ class DatabaseImportFichiers extends Command
 
         // Préparer la requête SQL
         $sql = "INSERT IGNORE INTO weather_hwminutely
-(day, temp, pressure, humidity, wind_speed, wind_deg)
-VALUES " . implode(',', $batch);
+            (dt, temp, pressure, humidity, wind_speed_kmh, wind_deg)
+            VALUES " . implode(',', $batch);
 
         try {
             $this->connection->executeQuery($sql);

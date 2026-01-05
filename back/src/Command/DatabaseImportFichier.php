@@ -38,6 +38,9 @@ class DatabaseImportFichier extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $output->writeln('<error>DATABASE IMPORT FICHIER</error>');
+
+
         $filePath = $input->getArgument('file');
         $batchSize = (int)$input->getOption('batch-size');
 

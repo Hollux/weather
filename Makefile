@@ -355,6 +355,13 @@ sf-create-user-prod: ## [PROD] Crée un nouvel utilisateur en prod
 	@echo "$(YELLOW)Création d'un nouvel utilisateur (prod)...$(NC)"
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) php bin/console app:create-user --env=prod
 
+
+
+.PHONY: sf-import-files
+sf-import-files: ## [DEV] Importe des fichiers de données (ex: make sf-import-files path="./data")
+	@echo "$(YELLOW)Importation des fichiers de données...$(NC)"
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/console app:import-files /app/datas --batch-size 2000
+
 # ================================================================
 # FRONTEND NUXT.JS
 # ================================================================

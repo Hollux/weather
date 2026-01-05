@@ -210,22 +210,18 @@ class ApiWeatherController extends AbstractController
      */
     public function generateWeatherDaily(WeatherDaily $weatherDaily, WeatherHWminutelyRepository $repoMinutely, EntityManagerInterface $em)
     {
+        // on récupère les jours présents dans hwminutely mais pas dans weather_daily
         $days = $repoMinutely->findDaysNotInDaily();
-
         $count = 0;
 
         foreach ($days as $day) {
-
             $rows = $repoMinutely->findDayData($day);
-
-            if (count($rows) === 0) {
+            // un jour doit avoir au moins 30 enregistrements pour être pris en compte
+            if (count($rows) < 30) {
                 continue;
             }
-
             $stats = $weatherDaily->computeDayStats($rows);
-
             $weatherDaily->createWeatherDaily($day, $stats, $em);
-
             $count++;
 
             // Pour éviter d’exploser la RAM
