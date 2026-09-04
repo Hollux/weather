@@ -3,7 +3,7 @@
 
 PROJECT_NAME = meteo
 
-DOCKER_COMPOSE = docker-compose
+DOCKER_COMPOSE = docker compose
 DOCKER_EXEC = docker exec -it
 
 SYMFONY_CONTAINER = $(PROJECT_NAME)_dev_back
@@ -361,6 +361,11 @@ sf-create-user-prod: ## [PROD] Crée un nouvel utilisateur en prod
 sf-import-files: ## [DEV] Importe des fichiers de données (ex: make sf-import-files path="./data")
 	@echo "$(YELLOW)Importation des fichiers de données...$(NC)"
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/console app:import-files /app/datas --batch-size 2000
+
+.PHONY: sf-import-files-prod
+sf-import-files-prod: ## [PROD] Importe des fichiers de données en prod (ex: make sf-import-files-prod path="./data")
+	@echo "$(YELLOW)Importation des fichiers de données (prod)...$(NC)"
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) php bin/console app:import-files /app/datas --batch-size 2000 --env=prod
 
 # ================================================================
 # FRONTEND NUXT.JS

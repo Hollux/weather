@@ -52,6 +52,10 @@ services:
       savKey: ${savKey}
     depends_on:
       - db_prod
+    networks:
+      default:
+        aliases:
+          - php-fpm
 
   db_prod:
     container_name: ${PROJECT_NAME}_prod_db

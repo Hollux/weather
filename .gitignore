@@ -1,2 +1,4 @@
 .env
 /backups/
+# Doc de reconstruction de la sauvegarde hors-site (rclone/Drive) — pas dans le dépôt
+SAUVEGARDE-GOOGLE-DRIVE.md
