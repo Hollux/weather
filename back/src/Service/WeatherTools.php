@@ -23,7 +23,7 @@ class WeatherTools
 
     public function GetRespFromData($data)
     {
-        if (!isset($data[0]) && !isset($data[1]) && count($data) !== 2) {
+        if (!is_array($data) || count($data) !== 2 || !isset($data[0]) || !isset($data[1])) {
             return ["error" => "Configuration de data incorrecte"];
         }
         $date = date("jnY");
@@ -226,7 +226,7 @@ class WeatherTools
             }
 
             //N
-            $notes = [$this->calcDegressif(intval(round($weatherArray[0]["N"], 0, PHP_ROUND_HALF_EVEN)), 15, 100, 1, 1), $this->calcDegressif(intval(round($weatherArray[0]["N"], 0, PHP_ROUND_HALF_EVEN)), 15, 100, 1, 1)];
+            $notes = [$this->calcDegressif(intval(round($weatherArray[0]["N"], 0, PHP_ROUND_HALF_EVEN)), 15, 100, 1, 1), $this->calcDegressif(intval(round($weatherArray[1]["N"], 0, PHP_ROUND_HALF_EVEN)), 15, 100, 1, 1)];
             if ($notes[0] > $notes[1]) {
                 $pointsVille[0] += 10;
             } else if ($notes[0] < $notes[1]) {
@@ -265,97 +265,51 @@ class WeatherTools
         }
     }
 
-    public function getAllFromVille($city)
-    {
-
-        //récupération des latLng de la ville
-        $url = "https://api-adresse.data.gouv.fr/search/?q=" . $city;
-        $cityArray = $this->getClientResponse($this->client, $url);
-        if (!$cityArray) {
-            return ["error" => "Ville " . $city . " introuvable"];
-        }
-
-        if (isset($cityArray["features"]) && isset($cityArray["features"][0]['geometry']["coordinates"])) {
-            // verif si on a bien des infos des villes.
-
-            $weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=" .
-                $cityArray["features"][0]['geometry']["coordinates"][1] . "&lon=" .
-                $cityArray["features"][0]['geometry']["coordinates"][0] . "&exclude=minutely,hourly,daily&appid=" .
-                $_ENV['weatherApiKey'] . "&lang=fr&units=metric";
-
-            $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
-
-            if (!isset($weatherArray["daily"])) {
-                return ["error" => "Ville " . $city . " introuvable"];
-            }
-        } else {
-            return ["error" => "Ville " . $city . " introuvable"];
-        }
-
-        return $weatherArray;
-    }
-
-
     public function getAllFromhw()
     {
-
-        //$weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=48.081&lon=7.4022&exclude=minutely,hourly,daily&appid=".
-        //$_ENV['weatherApiKey']."&lang=fr&units=metric";
-
-        //$weatherArray = $this->getClientResponse($this->client, $weatherUrl);
-
-        // Récupéreration des données HW en base de données.
+        // Récupération de la dernière mesure HW en base de données.
         $weatherArray = $this->em->getRepository(WeatherHWminutely::class)->findOneBy([], ['dt' => 'DESC']);
-        //dd($weatherArray);
+
+        if (!$weatherArray) {
+            return ["error" => "Aucune donnée météo disponible"];
+        }
 
         return $weatherArray->toArray();
     }
 
-    public function getTest2()
+
+    /**
+     * Récupère la mesure courante OpenWeatherMap et l'enregistre.
+     * Job interne : lancé par la commande app:weather:collect (cron), jamais exposé en HTTP.
+     *
+     * @return bool true si une mesure a été enregistrée
+     */
+    public function setMinutelyHW(): bool
     {
-        $dt = time();
-        $historicalDT = $dt - 432000;
-
-        $weatherUrl = "https://api.openweathermap.org/data/2.5/onecall/timemachine?lat=48.081&lon=7.4022&dt=" . $historicalDT . "&appid=" .
-            $_ENV['weatherApiKey'] . "&lang=fr&units=metric";
-
-        $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
-
-        // if(!isset($weatherArray["daily"])){
-        //     return ["error" => "Ville ". $city . " introuvable"];
-        // }
-
-        return $weatherArray;
-    }
-
-
-    public function setMinutelyHW()
-    {
-        //https://api.openweathermap.org/data/2.5/weather?q=London&appid=23e67e8262fb30f212afb7102fc4dbe0
         $weatherUrl = "https://api.openweathermap.org/data/3.0/onecall?lat=48.081&lon=7.4022&exclude=minutely,hourly,daily&appid=" .
             $_ENV['weatherApiKey'] . "&lang=fr&units=metric";
 
-
         $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
 
-        if ($weatherArray) {
-            //save.
-            $save = new WeatherHWminutely;
-            $save->setDt($weatherArray["current"]["dt"]);
-            $save->setTemp($weatherArray["current"]["temp"]);
-            $save->setPressure($weatherArray["current"]["pressure"]);
-            $save->setHumidity($weatherArray["current"]["humidity"]);
-            $save->setUvi($weatherArray["current"]["uvi"]);
-            $save->setWindSpeed($weatherArray["current"]["wind_speed"]);
-            $save->setWindSpeedKmh($weatherArray["current"]["wind_speed"] * 3.6);
-            $save->setWindDeg($weatherArray["current"]["wind_deg"]);
-            // a rajouter dans la bdd
-            //$save->setWindDeg($weatherArray["current"]["dew_point"]);
-            //$save->setWindDeg($weatherArray["current"]["feels_like"]);
-            // /a rajouter dans la bdd
-            $this->em->persist($save);
-            $this->em->flush();
+        if (!$weatherArray || !isset($weatherArray["current"])) {
+            return false;
         }
+
+        $current = $weatherArray["current"];
+
+        $save = new WeatherHWminutely;
+        $save->setDt($current["dt"]);
+        $save->setTemp($current["temp"]);
+        $save->setPressure($current["pressure"]);
+        $save->setHumidity($current["humidity"]);
+        $save->setUvi($current["uvi"]);
+        $save->setWindSpeed($current["wind_speed"]);
+        $save->setWindSpeedKmh($current["wind_speed"] * 3.6);
+        $save->setWindDeg($current["wind_deg"]);
+        $this->em->persist($save);
+        $this->em->flush();
+
+        return true;
     }
 
     public function setDailyHW($save = false)

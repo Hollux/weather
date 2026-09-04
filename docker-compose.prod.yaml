@@ -57,6 +57,27 @@ services:
         aliases:
           - php-fpm
 
+  cron_prod:
+    container_name: ${PROJECT_NAME}_prod_cron
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    init: true
+    command: ["/usr/local/bin/supercronic", "/var/www/html/crontab"]
+    volumes:
+      - ./datas:/app/datas
+      - ./back:/var/www/html
+      - vendor_data:/var/www/html/vendor
+    restart: always
+    environment:
+      APP_ENV: prod
+      DATABASE_URL: ${DATABASE_URL_PROD}
+      APP_SECRET: ${APP_SECRET}
+      weatherApiKey: ${weatherApiKey}
+      weatherApiFreeVersion: ${weatherApiFreeVersion}
+    depends_on:
+      - db_prod
+
   db_prod:
     container_name: ${PROJECT_NAME}_prod_db
     image: mysql:5.7

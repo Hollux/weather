@@ -367,6 +367,30 @@ sf-import-files-prod: ## [PROD] Importe des fichiers de données en prod (ex: ma
 	@echo "$(YELLOW)Importation des fichiers de données (prod)...$(NC)"
 	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) php bin/console app:import-files /app/datas --batch-size 2000 --env=prod
 
+.PHONY: sf-weather-collect
+sf-weather-collect: ## [DEV] Lance manuellement la collecte OpenWeatherMap (sinon auto toutes les 5 min via le service cron)
+	@echo "$(YELLOW)Collecte OpenWeatherMap...$(NC)"
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/console app:weather:collect
+
+.PHONY: sf-weather-collect-prod
+sf-weather-collect-prod: ## [PROD] Lance manuellement la collecte OpenWeatherMap
+	@echo "$(YELLOW)Collecte OpenWeatherMap (prod)...$(NC)"
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) php bin/console app:weather:collect --env=prod
+
+.PHONY: sf-weather-aggregate
+sf-weather-aggregate: ## [DEV] Lance manuellement l'agrégation journalière (sinon auto à 00h30 via le service cron)
+	@echo "$(YELLOW)Agrégation journalière...$(NC)"
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER) php bin/console app:weather:aggregate
+
+.PHONY: sf-weather-aggregate-prod
+sf-weather-aggregate-prod: ## [PROD] Lance manuellement l'agrégation journalière
+	@echo "$(YELLOW)Agrégation journalière (prod)...$(NC)"
+	$(DOCKER_EXEC) $(SYMFONY_CONTAINER_PROD) php bin/console app:weather:aggregate --env=prod
+
+.PHONY: cron-logs
+cron-logs: ## [DEV] Affiche les logs du planificateur (jobs cron)
+	$(DOCKER_COMPOSE) logs -f cron
+
 # ================================================================
 # FRONTEND NUXT.JS
 # ================================================================

@@ -1,0 +1,9 @@
+# Planification des jobs internes (exécuté par supercronic dans le service "cron").
+# supercronic transmet l'environnement du conteneur (DATABASE_URL, weatherApiKey, ...)
+# aux commandes, contrairement à cron classique.
+
+# Collecte de la mesure OpenWeatherMap courante, toutes les 5 minutes.
+*/5 * * * * php /var/www/html/bin/console app:weather:collect
+
+# Agrégation des mesures de la veille en données journalières, tous les jours à 00h30.
+30 0 * * * php /var/www/html/bin/console app:weather:aggregate

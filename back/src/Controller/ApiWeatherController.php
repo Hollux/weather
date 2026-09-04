@@ -14,8 +14,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Serializer\SerializerInterface;
 use App\Service\WeatherTools;
 use App\Service\WeatherDaily;
-use App\Repository\WeatherHWminutelyRepository;
-use Doctrine\ORM\EntityManagerInterface;
 
 class ApiWeatherController extends AbstractController
 {
@@ -62,14 +60,7 @@ class ApiWeatherController extends AbstractController
      */
     public function api_weather_detail($ville, Request $request, WeatherTools $weatherTools)
     {
-
-        if ($ville == "taville") {
-            return $this->json([
-                "error" => "MAIS NON PUNAISE METS LA VILLE QUE TU VEUX PAS #TAVILLE#"
-            ]);
-        }
-
-        //modif version hw only
+        // Version HW only : on renvoie la dernière mesure de la station, quel que soit $ville.
         $resp = $weatherTools->getAllFromhw();
         if (isset($resp['error'])) {
             return $this->json([
@@ -83,39 +74,12 @@ class ApiWeatherController extends AbstractController
     }
 
     /**
-     * @Route("/api_weather_test2", 
-     * name="api_weather_test2")
-     */
-    public function api_weather_test2(WeatherTools $weatherTools)
-    {
-        $resp = $weatherTools->getTest2();
-        if (isset($resp['error'])) {
-            return $this->json([
-                "error" => $resp['error']
-            ]);
-        }
-
-        return $this->json([
-            "success" => $resp,
-        ]);
-    }
-
-
-    /**
-     * @Route("/test", name="test")
-     */
-    public function test(WeatherTools $weatherTools)
-    {
-        $weatherTools->setMinutelyHW();
-
-        return $this->json([
-            "success" => "success",
-        ]);
-    }
-
-
-    /**
      * @Route("/saveminutly/{savkey}", methods={"GET","HEAD"})
+     *
+     * @deprecated La collecte OpenWeatherMap toutes les 5 min passe désormais par
+     * la commande interne app:weather:collect (service "cron"), sans HTTP ni secret
+     * dans l'URL. Cette route est conservée en secours le temps de la bascule ;
+     * l'ancien cron hôte est désactivé (commenté), pas supprimé.
      */
     public function saveminutly($savkey, WeatherTools $weatherTools): Response
     {
@@ -204,35 +168,16 @@ class ApiWeatherController extends AbstractController
 
     /**
      * @Route("/generateWeatherDaily", name="generateWeatherDaily")
-     * 
-     * Fonction de génération des données de sauvegarde quotidienne
-     * Lis les données journaliere et ajoute les jours manquants en fonction des informations de hwminutely
+     *
+     * Génère les lignes weather_daily manquantes à partir de weather_hwminutely.
+     *
+     * @deprecated L'agrégation journalière passe désormais par la commande interne
+     * app:weather:aggregate (service "cron"). Route conservée en secours le temps
+     * de la bascule ; l'ancien cron hôte est désactivé (commenté), pas supprimé.
      */
-    public function generateWeatherDaily(WeatherDaily $weatherDaily, WeatherHWminutelyRepository $repoMinutely, EntityManagerInterface $em)
+    public function generateWeatherDaily(WeatherDaily $weatherDaily)
     {
-        // on récupère les jours présents dans hwminutely mais pas dans weather_daily
-        $days = $repoMinutely->findDaysNotInDaily();
-        $count = 0;
-
-        foreach ($days as $day) {
-            $rows = $repoMinutely->findDayData($day);
-            // un jour doit avoir au moins 30 enregistrements pour être pris en compte
-            if (count($rows) < 30) {
-                continue;
-            }
-            $stats = $weatherDaily->computeDayStats($rows);
-            $weatherDaily->createWeatherDaily($day, $stats, $em);
-            $count++;
-
-            // Pour éviter d’exploser la RAM
-            if ($count % 10 === 0) {
-                $em->flush();
-                $em->clear();
-            }
-        }
-
-        $em->flush();
-        $em->clear();
+        $count = $weatherDaily->generateMissingDaily();
 
         return new Response("Daily OK : $count jours générés");
     }

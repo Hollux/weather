@@ -7,7 +7,9 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * @ORM\Entity(repositoryClass=WeatherDailyRepository::class)
- * @ORM\Table(name="weather_daily")
+ * @ORM\Table(name="weather_daily", uniqueConstraints={
+ *     @ORM\UniqueConstraint(name="uniq_day", columns={"day"})
+ * })
  */
 class WeatherDaily
 {

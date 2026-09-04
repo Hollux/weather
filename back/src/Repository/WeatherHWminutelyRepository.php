@@ -33,36 +33,51 @@ class WeatherHWminutelyRepository extends ServiceEntityRepository
         ;
     }
 
+    /**
+     * Jours (minuit UTC, en timestamp) présents dans weather_hwminutely mais pas
+     * encore agrégés dans weather_daily.
+     *
+     * Le bucket de jour est calculé sans FROM_UNIXTIME (donc sans dépendre du
+     * fuseau de la session MySQL) : FLOOR(dt / 86400) * 86400 = minuit UTC du jour
+     * de la mesure. weather_daily.day suit la même convention (cf. createWeatherDaily).
+     *
+     * @return int[] timestamps de minuit UTC, ordre croissant
+     */
     public function findDaysNotInDaily(): array
     {
         $conn = $this->getEntityManager()->getConnection();
 
         $sql = "
-            SELECT DISTINCT DATE(FROM_UNIXTIME(h.dt)) AS day
+            SELECT DISTINCT FLOOR(h.dt / 86400) * 86400 AS day_epoch
             FROM weather_hwminutely h
-            WHERE DATE(FROM_UNIXTIME(h.dt)) NOT IN (
-                SELECT DISTINCT DATE(FROM_UNIXTIME(d.day))
-                FROM weather_daily d
+            WHERE FLOOR(h.dt / 86400) * 86400 NOT IN (
+                SELECT d.day FROM weather_daily d
             )
-            ORDER BY day ASC;
+            ORDER BY day_epoch ASC
         ";
 
-        return $conn->executeQuery($sql)->fetchFirstColumn();
+        return array_map('intval', $conn->executeQuery($sql)->fetchFirstColumn());
     }
 
 
-    public function findDayData(string $day): array
+    /**
+     * Mesures d'un jour donné (borne [minuit UTC, minuit UTC + 24h[), via l'index sur dt.
+     */
+    public function findDayData(int $dayEpoch): array
     {
         $conn = $this->getEntityManager()->getConnection();
 
         $sql = "
             SELECT *
             FROM weather_hwminutely
-            WHERE DATE(FROM_UNIXTIME(dt)) = :day
+            WHERE dt >= :start AND dt < :end
             ORDER BY dt ASC
         ";
 
-        return $conn->executeQuery($sql, ['day' => $day])->fetchAllAssociative();
+        return $conn->executeQuery($sql, [
+            'start' => $dayEpoch,
+            'end' => $dayEpoch + 86400,
+        ])->fetchAllAssociative();
     }
 
 

@@ -49,6 +49,14 @@ RUN curl -sS https://getcomposer.org/installer | php -- \
 RUN curl -sS https://get.symfony.com/cli/installer | bash \
     && mv /root/.symfony*/bin/symfony /usr/local/bin
 
+# Supercronic : planificateur "cron" adapté aux conteneurs (non-root, logs stdout,
+# transmet l'environnement aux jobs). Utilisé par le service "cron" du docker-compose.
+# Pour durcir : ajouter une vérification sha1sum de la release.
+ENV SUPERCRONIC_VERSION=v0.2.33
+RUN curl -fsSL "https://github.com/aptible/supercronic/releases/download/${SUPERCRONIC_VERSION}/supercronic-linux-amd64" \
+        -o /usr/local/bin/supercronic \
+    && chmod +x /usr/local/bin/supercronic
+
 # Exposer port 8000
 EXPOSE 8000
 

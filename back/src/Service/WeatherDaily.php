@@ -22,14 +22,15 @@ class WeatherDaily
 
 
     /**
-     * Crée et persiste une entité WeatherDaily à partir des statistiques calculées
+     * Crée et persiste une entité WeatherDaily à partir des statistiques calculées.
+     *
+     * @param int $dayEpoch minuit UTC du jour (FLOOR(dt/86400)*86400) — même convention
+     *                      que WeatherHWminutelyRepository::findDaysNotInDaily()
      */
-    public function createWeatherDaily(string $day, array $stats, EntityManagerInterface $em)
+    public function createWeatherDaily(int $dayEpoch, array $stats, EntityManagerInterface $em)
     {
         $daily = new WeatherDailyEntity();
-        // Transforme la date string en timestamp
-        $timeStamp = (new \DateTime($day))->getTimestamp();
-        $daily->setDay($timeStamp);
+        $daily->setDay($dayEpoch);
 
         $daily->setTempAvg($stats['temp_avg']);
         $daily->setTempMax($stats['temp_max']);
@@ -94,6 +95,53 @@ class WeatherDaily
             'wind_speed_max' => round(max($windSpeeds), 2),
             'wind_deg_avg' => round(array_sum($windDegs) / count($windDegs), 2),
         ];
+    }
+
+
+    /**
+     * Génère les lignes weather_daily manquantes à partir de weather_hwminutely.
+     * Job interne : lancé par la commande app:weather:aggregate (cron), et aussi
+     * exposé en secours via la route HTTP /generateWeatherDaily.
+     *
+     * @return int nombre de jours générés
+     */
+    public function generateMissingDaily(): int
+    {
+        /** @var \App\Repository\WeatherHWminutelyRepository $repoMinutely */
+        $repoMinutely = $this->em->getRepository(WeatherHWminutely::class);
+
+        // On n'agrège que des jours terminés : le jour en cours (minuit UTC courant)
+        // est encore incomplet.
+        $todayEpoch = intdiv(time(), 86400) * 86400;
+
+        // Jours présents dans hwminutely mais pas encore dans weather_daily.
+        $days = $repoMinutely->findDaysNotInDaily();
+        $count = 0;
+
+        foreach ($days as $dayEpoch) {
+            if ($dayEpoch >= $todayEpoch) {
+                continue;
+            }
+            $rows = $repoMinutely->findDayData($dayEpoch);
+            // Un jour doit avoir au moins 30 enregistrements pour être pris en compte.
+            if (count($rows) < 30) {
+                continue;
+            }
+            $stats = $this->computeDayStats($rows);
+            $this->createWeatherDaily($dayEpoch, $stats, $this->em);
+            $count++;
+
+            // Pour éviter d'exploser la RAM.
+            if ($count % 10 === 0) {
+                $this->em->flush();
+                $this->em->clear();
+            }
+        }
+
+        $this->em->flush();
+        $this->em->clear();
+
+        return $count;
     }
 
 
