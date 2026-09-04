@@ -1,4 +1,14 @@
+# macOS
+.DS_Store
+
+# Environnement / secrets
 .env
+.env.*
+!.env.exemple
+
+# Données volumineuses (hors VCS : montées via volume Docker / importées manuellement)
 /backups/
-# Doc de reconstruction de la sauvegarde hors-site (rclone/Drive) — pas dans le dépôt
-SAUVEGARDE-GOOGLE-DRIVE.md
+/datas/
+*.sql
+*.xls
+*.xlsx
