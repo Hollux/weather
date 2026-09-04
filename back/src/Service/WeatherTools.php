@@ -286,26 +286,32 @@ class WeatherTools
      */
     public function setMinutelyHW(): bool
     {
-        $weatherUrl = "https://api.openweathermap.org/data/3.0/onecall?lat=48.081&lon=7.4022&exclude=minutely,hourly,daily&appid=" .
+        // /data/3.0/onecall exige un abonnement payant "One Call by Call" : indisponible
+        // pour une clé gratuite (401). On utilise donc les endpoints 2.5 gratuits,
+        // comme le reste de la classe (cf. GetRespFromData).
+        $weatherUrl = "https://api.openweathermap.org/data/2.5/weather?lat=48.081&lon=7.4022&appid=" .
             $_ENV['weatherApiKey'] . "&lang=fr&units=metric";
 
         $weatherArray = $this->getClientResponse($this->client, $weatherUrl);
 
-        if (!$weatherArray || !isset($weatherArray["current"])) {
+        if (!$weatherArray || !isset($weatherArray["main"]) || !isset($weatherArray["wind"])) {
             return false;
         }
 
-        $current = $weatherArray["current"];
+        $uviUrl = "https://api.openweathermap.org/data/2.5/uvi?lat=48.081&lon=7.4022&appid=" .
+            $_ENV['weatherApiKey'];
+
+        $uviArray = $this->getClientResponse($this->client, $uviUrl);
 
         $save = new WeatherHWminutely;
-        $save->setDt($current["dt"]);
-        $save->setTemp($current["temp"]);
-        $save->setPressure($current["pressure"]);
-        $save->setHumidity($current["humidity"]);
-        $save->setUvi($current["uvi"]);
-        $save->setWindSpeed($current["wind_speed"]);
-        $save->setWindSpeedKmh($current["wind_speed"] * 3.6);
-        $save->setWindDeg($current["wind_deg"]);
+        $save->setDt($weatherArray["dt"]);
+        $save->setTemp($weatherArray["main"]["temp"]);
+        $save->setPressure($weatherArray["main"]["pressure"]);
+        $save->setHumidity($weatherArray["main"]["humidity"]);
+        $save->setUvi($uviArray["value"] ?? 0);
+        $save->setWindSpeed($weatherArray["wind"]["speed"]);
+        $save->setWindSpeedKmh($weatherArray["wind"]["speed"] * 3.6);
+        $save->setWindDeg($weatherArray["wind"]["deg"]);
         $this->em->persist($save);
         $this->em->flush();
 
