@@ -37,6 +37,7 @@ export default {
   plugins: [
     '~plugins/globalFunction.js',
     '~plugins/vueGoogleCharts.js',
+    '~plugins/auth.client.js',
   ],
 
   // Auto import components: https://go.nuxtjs.dev/config-components
@@ -54,7 +55,6 @@ export default {
     // https://go.nuxtjs.dev/axios
     '@nuxtjs/axios',
     '@nuxtjs/toast',
-    '@nuxtjs/auth',
     '@nuxtjs/dayjs'
   ],
 
@@ -64,7 +64,10 @@ export default {
   },
   proxy: {
     '/api': {
-      target: process.env.NUXT_ENV_URL_BACK+'/',
+      // NUXT_ENV_URL_BACK n'était jamais défini (seul URL_BACK l'est côté
+      // docker-compose) : le proxy dev pointait vers "undefined/" et toutes
+      // les requêtes /api échouaient silencieusement.
+      target: process.env.URL_BACK + '/',
       pathRewrite: {
         '^/api': ''
       }

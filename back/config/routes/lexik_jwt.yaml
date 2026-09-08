@@ -1,0 +1,7 @@
+# Route déclarative nécessaire pour que le routeur ne renvoie pas 404 avant
+# que le firewall (json_login) n'intercepte la requête : aucun contrôleur,
+# entièrement géré par lexik_jwt_authentication.handler.authentication_success.
+# Chemin nu (sans /api) : voir le commentaire dans security.yaml.
+login_check:
+    path: /login_check
+    methods: POST
