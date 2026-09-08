@@ -4,6 +4,11 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+  # Dossier Drive "Orégon sauve graph/" (exports cumulatifs station CRange
+  # WMR300) — même chemin en dev et en prod, tous deux montent ./datas sur
+  # /app/datas (voir docker-compose*.yaml).
+  crange.drive_folder_id: '1NQFkcVMqkRx-o33-63e1CC-0At-KZphP'
+  crange.drive_credentials_file: '/app/datas/weather-507615-282bb5a87325.json'
 
 services:
   # default configuration for services in *this* file
@@ -20,6 +25,11 @@ services:
       - "../src/Entity/"
       - "../src/Kernel.php"
       - "../src/Tests/"
+
+  App\Service\CRange\CRangeDriveClient:
+    arguments:
+      $credentialsFile: '%crange.drive_credentials_file%'
+      $folderId: '%crange.drive_folder_id%'
 
   # add more service definitions when explicit configuration is needed
   # please note that last definitions always *replace* previous ones

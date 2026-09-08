@@ -1,7 +1,7 @@
 <template>
     <div>
         <b-container>
-            <PageTitle title="Comparaison" group="API" />
+            <PageTitle title="Comparaison" group="CRange" />
 
             <b-form inline>
                 <label>Années à comparer :</label>
@@ -132,7 +132,7 @@ export default {
             const selectedYears = this.years.filter(y => y && y >= 2000);
             const data = { years: selectedYears };
 
-            this.$axiosPostAndInfos("getCompare", data).then((value) => {
+            this.$axiosPostAndInfos("getCompareCRange", data).then((value) => {
                 if (value[0] === true && value[1]) {
                     this.comparaisonData = this.formatComparaisonAnnuel(value[1], selectedYears);
                 } else {
@@ -145,6 +145,9 @@ export default {
         },
 
         buildMonthlyAveragesForYear(daysArray, metric) {
+            // rainTotal est un cumul (mm tombés) : on somme les totaux journaliers
+            // du mois. Toutes les autres métriques sont des moyennes mensuelles.
+            const isSum = metric === 'rainTotal';
             const monthlySums = {};
             daysArray.forEach(entry => {
                 const date = new Date(entry.day * 1000);
@@ -158,7 +161,9 @@ export default {
             const monthlyAverages = {};
             for (let m = 1; m <= 12; m++) {
                 const data = monthlySums[m];
-                monthlyAverages[m] = data && data.count > 0 ? Number(data.sum / data.count) : 0;
+                monthlyAverages[m] = data && data.count > 0
+                    ? Number(isSum ? data.sum : data.sum / data.count)
+                    : 0;
             }
             return monthlyAverages;
         },
@@ -170,7 +175,8 @@ export default {
                 'pressureAvg', 'pressureMax', 'pressureMin',
                 'humidityAvg', 'humidityMax', 'humidityMin',
                 'uviAvg', 'uviMax',
-                'windSpeedAvg', 'windSpeedMax'
+                'windSpeedAvg', 'windSpeedMax',
+                'rainTotal', 'rainRateAvg', 'rainRateMax', 'rainHourlyAvg', 'rainHourlyMax'
             ];
             //'windDegAvg'
 
@@ -212,7 +218,10 @@ export default {
                 humidity: { vAxis: { minValue: 0, maxValue: 100 } },
                 uvi: { vAxis: { minValue: 0, maxValue: 12 } },
                 windSpeed: { vAxis: { minValue: 0, maxValue: 50 } },
-                windDeg: { vAxis: { minValue: 0, maxValue: 360 } }
+                windDeg: { vAxis: { minValue: 0, maxValue: 360 } },
+                rainTotal: { vAxis: { minValue: 0 } },
+                rainRate: { vAxis: { minValue: 0 } },
+                rainHourly: { vAxis: { minValue: 0 } }
             };
 
             const group = metric.replace(/Avg|Max|Min/, '') === 'windSpeed' ? 'windSpeed' :
@@ -238,7 +247,12 @@ export default {
                 uviAvg: "Indice UV moyen",
                 uviMax: "Indice UV maximal",
                 windSpeedAvg: "Vitesse vent moyenne",
-                windSpeedMax: "Vitesse vent maximale"
+                windSpeedMax: "Vitesse vent maximale",
+                rainTotal: "Cumul de pluie mensuel (mm)",
+                rainRateAvg: "Pluviométrie moyenne (mm/h)",
+                rainRateMax: "Pluviométrie maximale (mm/h)",
+                rainHourlyAvg: "Pluie/heure moyenne (mm)",
+                rainHourlyMax: "Pluie/heure maximale (mm)"
             };
             //windDegAvg: "Direction vent moyenne mensuelle"
             return titles[metric] || metric;

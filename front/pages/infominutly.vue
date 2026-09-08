@@ -1,19 +1,12 @@
 <template>
   <b-container class="component">
-    <b-form inline>
-      <label for="example-datepicker">Choisissez une plage : </label>
-      <b-form-datepicker
-        id="min"
-        v-model="min"
-        class="mb-2"
-      ></b-form-datepicker>
-      <b-form-datepicker
-        id="max"
-        v-model="max"
-        class="mb-2"
-      ></b-form-datepicker>
-      <b-button variant="primary" v-on:click="getMinutly()">Valider</b-button>
-    </b-form>
+    <PageTitle title="InfosMinute" group="API" />
+
+    <DateRangeForm
+      :min.sync="min"
+      :max.sync="max"
+      @submit="getMinutly()"
+    />
 
     <b-table
       v-if="dataMinutly"

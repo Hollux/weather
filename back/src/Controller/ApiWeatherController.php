@@ -14,6 +14,8 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Serializer\SerializerInterface;
 use App\Service\WeatherTools;
 use App\Service\WeatherDaily;
+use App\Repository\WeatherHWminutelyCRangeRepository;
+use App\Repository\WeatherDailyCRangeRepository;
 
 class ApiWeatherController extends AbstractController
 {
@@ -167,6 +169,44 @@ class ApiWeatherController extends AbstractController
     }
 
     /**
+     * @Route("/getminutlycrange")
+     *
+     * Mirroir de /getminutly pour la station CRange (weather_hwminutely_crange /
+     * weather_daily_crange), alimentée par la commande app:crange:import.
+     */
+    public function getminutlycrange(
+        WeatherHWminutelyCRangeRepository $minutelyRepo,
+        WeatherDailyCRangeRepository $dailyRepo,
+        Request $request
+    ): Response {
+        $data = json_decode($request->getContent(), true)["data"];
+        $min = strtotime($data[0]);
+        $max = strtotime($data[1]) + 86399;
+
+        if (!$min || !$max) {
+            return $this->json([
+                "error" => "no min max",
+            ]);
+        }
+
+        if (($max - $min) < 1209600) {
+            $resp = $minutelyRepo->getAllInDtMinMax($min, $max);
+        } else {
+            $resp = $dailyRepo->getDailyWithMinMax($min, $max);
+        }
+
+        $arrayResp = [];
+        foreach ($resp as $value) {
+            $arrayResp[] = $value->toArray();
+        }
+
+        return $this->json([
+            "success" => "success",
+            "infos" => $arrayResp
+        ]);
+    }
+
+    /**
      * @Route("/generateWeatherDaily", name="generateWeatherDaily")
      *
      * Génère les lignes weather_daily manquantes à partir de weather_hwminutely.
@@ -204,6 +244,39 @@ class ApiWeatherController extends AbstractController
 
 
         $resp = $weatherTools->getCompare($year1, $year2, $year3);
+        if (isset($resp['error'])) {
+            return $this->json([
+                "error" => $resp['error']
+            ]);
+        }
+
+        return $this->json([
+            "success" => "success",
+            "infos" => $resp
+        ]);
+    }
+
+    /**
+     * @Route("/getCompareCRange", name="getCompareCRange")
+     *
+     * Mirroir de /getCompare pour la station CRange.
+     */
+    public function getCompareCRange(WeatherTools $weatherTools, Request $request): Response
+    {
+        $data = json_decode($request->getContent(), true)["data"];
+        $years = $data['years'];
+        $year1 = $years[0] ?? null;
+        $year2 = $years[1] ?? null;
+        $year3 = $years[2] ?? null;
+
+        // nullable interdit
+        if (!$year1 || !$year2 || !$year3) {
+            return $this->json([
+                "error" => "Il doit manquer une année",
+            ]);
+        }
+
+        $resp = $weatherTools->getCompareCRange($year1, $year2, $year3);
         if (isset($resp['error'])) {
             return $this->json([
                 "error" => $resp['error']

@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\WeatherDaily;
+use App\Entity\WeatherDailyCRange;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\WeatherVille;
@@ -381,5 +382,12 @@ class WeatherTools
         // Récupération des données journalières pour les années demandées (en un seul appel bdd).
         $years = array_filter([$year1, $year2, $year3]);
         return $this->em->getRepository(WeatherDaily::class)->getAllInYears($years);
+    }
+
+    // Mirroir de getCompare pour la station CRange.
+    public function getCompareCRange($year1, $year2, $year3)
+    {
+        $years = array_filter([$year1, $year2, $year3]);
+        return $this->em->getRepository(WeatherDailyCRange::class)->getAllInYears($years);
     }
 }
