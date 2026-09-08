@@ -1,20 +1,13 @@
 <template>
   <div>
     <b-container class="component">
-      <b-form inline>
-        <label for="example-datepicker">Choisissez une plage : </label>
-        <b-form-datepicker
-          id="min"
-          v-model="min"
-          class="mb-2"
-        ></b-form-datepicker>
-        <b-form-datepicker
-          id="max"
-          v-model="max"
-          class="mb-2"
-        ></b-form-datepicker>
-        <b-button variant="primary" @click="getMinutly()">Valider</b-button>
-      </b-form>
+      <PageTitle title="Graph" group="API" />
+
+      <DateRangeForm
+        :min.sync="min"
+        :max.sync="max"
+        @submit="getMinutly()"
+      />
     </b-container>
 
     <b-container fluid>
@@ -98,6 +91,26 @@ export default {
           axis: "horizontal",
         },
       },
+      // Échelle fixe et réaliste : la pression atmosphérique au niveau de la
+      // mer reste dans cette plage — sans ça, un point aberrant fait passer
+      // le vAxis "pretty" (auto) sur une échelle 0-3000 illisible.
+      globalOptionsPressure: {
+        legend: { position: "top" },
+        hAxis: { format: "dd/MM/yyyy" },
+        vAxis: {
+          viewWindowMode: "explicit",
+          viewWindow: { min: 950, max: 1080 },
+          minValue: 950,
+          maxValue: 1080,
+          format: "# hPa",
+          title: "Pression (hPa)",
+          gridlines: { count: 4 },
+        },
+        explorer: {
+          actions: ["dragToZoom", "rightClickToReset"],
+          axis: "horizontal",
+        },
+      },
       // couleurs demandées : mini bleu, centrale verte, maxi rouge
       colorMap: {
         main: "#2e7d32", // green
@@ -117,7 +130,8 @@ export default {
             value[1],
             this.globalOptions,
             this.colorMap,
-            this.globalOptionsTemps
+            this.globalOptionsTemps,
+            this.globalOptionsPressure
           );
         } else {
           this.charDataF = [];
@@ -140,8 +154,27 @@ export default {
  *   wind_speed: { ... }
  * }
  */
-function dataFormat(data, globalOptions, colorMap, globalOptionsTemps) {
+function dataFormat(data, globalOptions, colorMap, globalOptionsTemps, globalOptionsPressure) {
   if (!data || !Array.isArray(data) || data.length === 0) return {};
+
+  // Mode journalier (WeatherDaily) vs minutely : seul le journalier porte des
+  // agrégats temp_0 / mini / maxi. Au pas journalier on remplace les infobulles
+  // par des textes sur mesure : jour seul pour les moyennes (pas plus précis
+  // que la journée), jour + heure pour les mini/maxi (l'heure vient des champs
+  // *_dt renvoyés par l'API, en heure locale du navigateur).
+  const isDaily = data[0] && data[0].temp_0 !== undefined;
+
+  function pad2(n) {
+    return String(n).padStart(2, "0");
+  }
+  function frDate(dtSec) {
+    const d = new Date(dtSec * 1000);
+    return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`;
+  }
+  function frDateHeure(dtSec) {
+    const d = new Date(dtSec * 1000);
+    return `${frDate(dtSec)} à ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  }
 
   // détecter presence des min/max
   let has = {
@@ -171,51 +204,56 @@ function dataFormat(data, globalOptions, colorMap, globalOptionsTemps) {
       has.wind_speed_max = true;
   });
 
+  // infobulle sur mesure au pas journalier ; null en minutely (infobulle par défaut)
+  function dailyTooltip(r, key, kind) {
+    if (!isDaily) return null;
+    const label = labelFromKey(key);
+    if (kind === "moy") {
+      // moyenne / valeur journalière : pas d'heure, c'est la journée
+      return `${frDate(r.dt)}\n${label} : ${parseNumberSafe(r[key])}`;
+    }
+    const whenSec = r[key + "_dt"];
+    const when =
+      whenSec !== undefined && whenSec !== null
+        ? frDateHeure(whenSec)
+        : frDate(r.dt);
+    return `${when}\n${label} ${kind} : ${parseNumberSafe(r[key])}`;
+  }
+
   // helper pour construire chart object
-  function buildChart(mainKey, minKey, maxKey, title) {
-    // déterminer colonnes (ordre : main, min, max)
-    const columns = ["dt", mainKey];
-    if (minKey && has[minKey]) columns.push(minKey);
-    if (maxKey && has[maxKey]) columns.push(maxKey);
+  function buildChart(mainKey, minKey, maxKey, title, mainColor, axisOptions) {
+    const useMin = minKey && has[minKey];
+    const useMax = maxKey && has[maxKey];
 
-    // construire colors array correspondant à l'ordre des séries (excluant dt)
-    const colors = [];
-    // main
-    colors.push(colorMap.main);
-    // min
-    if (minKey && has[minKey]) colors.push(colorMap.min);
-    // max
-    if (maxKey && has[maxKey]) colors.push(colorMap.max);
+    // construire colors array correspondant à l'ordre des séries (excluant dt
+    // et les colonnes de rôle "tooltip", qui ne consomment pas de couleur)
+    const colors = [mainColor || colorMap.main];
+    if (useMin) colors.push(colorMap.min);
+    if (useMax) colors.push(colorMap.max);
 
-    // header row pour Google Charts : remplacer keys par labels
-    const header = columns.map((c) => {
-      if (c === "dt") return "dt";
-      // labels lisibles
-      switch (c) {
-        case mainKey:
-          return labelFromKey(mainKey);
-        case minKey:
-          return labelFromKey(minKey);
-        case maxKey:
-          return labelFromKey(maxKey);
-        default:
-          return c;
-      }
-    });
+    // header row pour Google Charts (+ colonne tooltip par série au pas journalier)
+    const header = ["dt", labelFromKey(mainKey)];
+    if (isDaily) header.push({ role: "tooltip", type: "string" });
+    if (useMin) {
+      header.push(labelFromKey(minKey));
+      if (isDaily) header.push({ role: "tooltip", type: "string" });
+    }
+    if (useMax) {
+      header.push(labelFromKey(maxKey));
+      if (isDaily) header.push({ role: "tooltip", type: "string" });
+    }
 
     const rows = [];
     data.forEach((r) => {
-      const dt = new Date(r.dt * 1000);
-      const row = [dt];
-      // main value
-      row.push(parseNumberSafe(r[mainKey]));
-      // min if expected in columns
-      if (minKey && has[minKey]) {
+      const row = [new Date(r.dt * 1000), parseNumberSafe(r[mainKey])];
+      if (isDaily) row.push(dailyTooltip(r, mainKey, "moy"));
+      if (useMin) {
         row.push(parseNumberSafe(r[minKey]));
+        if (isDaily) row.push(dailyTooltip(r, minKey, "mini"));
       }
-      // max if expected in columns
-      if (maxKey && has[maxKey]) {
+      if (useMax) {
         row.push(parseNumberSafe(r[maxKey]));
+        if (isDaily) row.push(dailyTooltip(r, maxKey, "maxi"));
       }
       rows.push(row);
     });
@@ -225,7 +263,9 @@ function dataFormat(data, globalOptions, colorMap, globalOptionsTemps) {
 
     // Options avec spéciales pour la température
     let pre_options = globalOptions;
-    if (mainKey === "temp_old") {
+    if (axisOptions) {
+      pre_options = Object.assign({}, axisOptions);
+    } else if (mainKey === "temp_old") {
       pre_options = Object.assign({}, globalOptionsTemps);
     } else {
       pre_options = Object.assign({}, globalOptions);
@@ -271,7 +311,9 @@ function dataFormat(data, globalOptions, colorMap, globalOptionsTemps) {
     "pressure",
     "pressure_min",
     "pressure_max",
-    "Pression"
+    "Pression",
+    undefined,
+    globalOptionsPressure
   );
   result.humidity = buildChart(
     "humidity",

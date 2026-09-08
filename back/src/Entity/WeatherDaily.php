@@ -33,6 +33,14 @@ class WeatherDaily
         $this->wind_speed_avg = 0.0;
         $this->wind_speed_max = 0.0;
         $this->wind_deg_avg = 0.0;
+        $this->temp_min_dt = null;
+        $this->temp_max_dt = null;
+        $this->pressure_min_dt = null;
+        $this->pressure_max_dt = null;
+        $this->humidity_min_dt = null;
+        $this->humidity_max_dt = null;
+        $this->uvi_max_dt = null;
+        $this->wind_speed_max_dt = null;
     }
 
 
@@ -99,6 +107,33 @@ class WeatherDaily
     /** @ORM\Column(type="float") */
     private float $wind_deg_avg;
 
+    // Horodatage (timestamp Unix UTC) de la mesure minutely qui porte le mini / maxi
+    // du jour. NULL = pas de minutely disponible pour ce jour (jour antérieur au
+    // suivi, ou trou de collecte). Les moyennes n'ont pas d'heure : c'est le jour.
+    /** @ORM\Column(type="integer", nullable=true) */
+    private ?int $temp_min_dt;
+
+    /** @ORM\Column(type="integer", nullable=true) */
+    private ?int $temp_max_dt;
+
+    /** @ORM\Column(type="integer", nullable=true) */
+    private ?int $pressure_min_dt;
+
+    /** @ORM\Column(type="integer", nullable=true) */
+    private ?int $pressure_max_dt;
+
+    /** @ORM\Column(type="integer", nullable=true) */
+    private ?int $humidity_min_dt;
+
+    /** @ORM\Column(type="integer", nullable=true) */
+    private ?int $humidity_max_dt;
+
+    /** @ORM\Column(type="integer", nullable=true) */
+    private ?int $uvi_max_dt;
+
+    /** @ORM\Column(type="integer", nullable=true) */
+    private ?int $wind_speed_max_dt;
+
 
     // ================= Fonctions =================
 
@@ -122,6 +157,14 @@ class WeatherDaily
             'wind_speed' => $this->wind_speed_avg,
             'wind_speed_max' => $this->wind_speed_max,
             'wind_deg' => $this->wind_deg_avg,
+            'temp_min_dt' => $this->temp_min_dt,
+            'temp_max_dt' => $this->temp_max_dt,
+            'pressure_min_dt' => $this->pressure_min_dt,
+            'pressure_max_dt' => $this->pressure_max_dt,
+            'humidity_min_dt' => $this->humidity_min_dt,
+            'humidity_max_dt' => $this->humidity_max_dt,
+            'uvi_max_dt' => $this->uvi_max_dt,
+            'wind_speed_max_dt' => $this->wind_speed_max_dt,
         ];
     }
 
@@ -321,6 +364,86 @@ class WeatherDaily
     public function setWindDegAvg(float $wind_deg_avg): self
     {
         $this->wind_deg_avg = $wind_deg_avg;
+        return $this;
+    }
+
+    public function getTempMinDt(): ?int
+    {
+        return $this->temp_min_dt;
+    }
+    public function setTempMinDt(?int $temp_min_dt): self
+    {
+        $this->temp_min_dt = $temp_min_dt;
+        return $this;
+    }
+
+    public function getTempMaxDt(): ?int
+    {
+        return $this->temp_max_dt;
+    }
+    public function setTempMaxDt(?int $temp_max_dt): self
+    {
+        $this->temp_max_dt = $temp_max_dt;
+        return $this;
+    }
+
+    public function getPressureMinDt(): ?int
+    {
+        return $this->pressure_min_dt;
+    }
+    public function setPressureMinDt(?int $pressure_min_dt): self
+    {
+        $this->pressure_min_dt = $pressure_min_dt;
+        return $this;
+    }
+
+    public function getPressureMaxDt(): ?int
+    {
+        return $this->pressure_max_dt;
+    }
+    public function setPressureMaxDt(?int $pressure_max_dt): self
+    {
+        $this->pressure_max_dt = $pressure_max_dt;
+        return $this;
+    }
+
+    public function getHumidityMinDt(): ?int
+    {
+        return $this->humidity_min_dt;
+    }
+    public function setHumidityMinDt(?int $humidity_min_dt): self
+    {
+        $this->humidity_min_dt = $humidity_min_dt;
+        return $this;
+    }
+
+    public function getHumidityMaxDt(): ?int
+    {
+        return $this->humidity_max_dt;
+    }
+    public function setHumidityMaxDt(?int $humidity_max_dt): self
+    {
+        $this->humidity_max_dt = $humidity_max_dt;
+        return $this;
+    }
+
+    public function getUviMaxDt(): ?int
+    {
+        return $this->uvi_max_dt;
+    }
+    public function setUviMaxDt(?int $uvi_max_dt): self
+    {
+        $this->uvi_max_dt = $uvi_max_dt;
+        return $this;
+    }
+
+    public function getWindSpeedMaxDt(): ?int
+    {
+        return $this->wind_speed_max_dt;
+    }
+    public function setWindSpeedMaxDt(?int $wind_speed_max_dt): self
+    {
+        $this->wind_speed_max_dt = $wind_speed_max_dt;
         return $this;
     }
 }
