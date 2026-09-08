@@ -5,6 +5,8 @@
 .env
 .env.*
 !.env.exemple
+weather-507615-282bb5a87325.json
+*.iam.gserviceaccount.com.json
 
 # Données volumineuses (hors VCS : montées via volume Docker / importées manuellement)
 /backups/

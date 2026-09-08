@@ -74,3 +74,6 @@
 /vendor/
 ###< symfony/framework-bundle ###
 old_datas_old.sql
+###> lexik/jwt-authentication-bundle ###
+/config/jwt/*.pem
+###< lexik/jwt-authentication-bundle ###
