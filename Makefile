@@ -174,6 +174,9 @@ down-prod: ## [PROD] Arrête tous les conteneurs Docker en production
 	@echo "$(RED)Arrêt des conteneurs de production...$(NC)"
 	$(DOCKER_COMPOSE) -f docker-compose.prod.yaml down
 
+.PHONY: stop
+stop: down-prod ## [PROD] Alias de 'down-prod', utilisé par l'ExecStop de weather.service
+
 .PHONY: restart
 restart: down up ## [soft] [DEV] Redémarre tous les conteneurs
 
