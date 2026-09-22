@@ -25,6 +25,10 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     libzip-dev \
     libxml2-dev \
+    libpng-dev \
+    libjpeg62-turbo-dev \
+    libwebp-dev \
+    libfreetype6-dev \
     locales \
     curl \
     nodejs \
@@ -34,7 +38,8 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Installer les extensions PHP nécessaires
-RUN docker-php-ext-install intl pdo pdo_mysql pdo_pgsql zip calendar dom
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install intl pdo pdo_mysql pdo_pgsql zip calendar dom gd
 
 # Configuration des locales
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \

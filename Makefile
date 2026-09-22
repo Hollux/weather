@@ -3,8 +3,10 @@
 
 PROJECT_NAME = meteo
 
+# Sans -it : requis pour les recipes lancées sans TTY (ex. weather.service au boot)
 DOCKER_COMPOSE = docker compose
 DOCKER_EXEC = docker exec -it
+DOCKER_EXEC_CI = docker exec
 
 SYMFONY_CONTAINER = $(PROJECT_NAME)_dev_back
 FRONT_CONTAINER = $(PROJECT_NAME)_dev_front
@@ -132,11 +134,11 @@ docker-prod: ## [soft] [PROD] Lance l'environnement de production Docker
 
 
 	@echo "Exécution des migrations Doctrine prod..."
-	$(DOCKER_EXEC) ${SYMFONY_CONTAINER_PROD} php bin/console doctrine:migrations:migrate --no-interaction --env=prod
+	$(DOCKER_EXEC_CI) ${SYMFONY_CONTAINER_PROD} php bin/console doctrine:migrations:migrate --no-interaction --env=prod
 
 	# chargement des anciennes données
 	@echo "Importation des anciennes données SQL..."
-	$(DOCKER_EXEC) ${SYMFONY_CONTAINER_PROD} php bin/console app:import-sql old_datas.sql --batch-size=4000
+	$(DOCKER_EXEC_CI) ${SYMFONY_CONTAINER_PROD} php bin/console app:import-sql old_datas.sql --batch-size=4000
 
 
 	@echo "Production Docker environment started."

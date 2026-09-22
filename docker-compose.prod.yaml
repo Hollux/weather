@@ -11,6 +11,9 @@ services:
     ports:
       - "${FRONT_PORT_PROD}:80" # Expose Nginx port 80 sur ${FRONT_PORT_PROD}
     volumes: [] # Pas de montage du dossier source, les fichiers statiques sont dans l'image
+    depends_on:
+      - back_prod
+    restart: always # nginx quitte si "back_prod" n'est pas encore résolvable au démarrage ; on relance jusqu'à ce que l'upstream existe
 
   back_prod:
     container_name: ${PROJECT_NAME}_prod_back
